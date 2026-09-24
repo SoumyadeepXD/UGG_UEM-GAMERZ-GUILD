@@ -6,10 +6,10 @@
   --color-ugg-red-dark: #b80d22;
   --color-ugg-dark: #08090d;
   --color-ugg-surface: #0f1118;
-  --color-ugg-card: #141722;
-  --color-ugg-card-hover: #1a1e2d;
+  --color-ugg-card: #12141e;
+  --color-ugg-card-hover: #171a27;
   --color-ugg-border: rgba(229, 29, 54, 0.25);
-  --color-ugg-border-glow: rgba(229, 29, 54, 0.6);
+  --color-ugg-border-glow: rgba(229, 29, 54, 0.65);
 }
 
 :root {
@@ -26,9 +26,108 @@ body {
   selection-color: #ffffff;
 }
 
+/* Animations */
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes radar-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes radar-counter {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(1000%); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.05); }
+}
+
+@keyframes equalizer {
+  0%, 100% { height: 4px; }
+  50% { height: 16px; }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 25s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+.animate-radar-spin {
+  animation: radar-spin 18s linear infinite;
+}
+
+.animate-radar-counter {
+  animation: radar-counter 26s linear infinite;
+}
+
+.animate-float {
+  animation: float-slow 4s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* Cyberpunk angled cuts (hardware accelerated clip-paths) */
+.cyber-cut {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 14px) 0,
+    100% 14px,
+    100% 100%,
+    14px 100%,
+    0 calc(100% - 14px)
+  );
+}
+
+.cyber-cut-sm {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 8px) 0,
+    100% 8px,
+    100% 100%,
+    8px 100%,
+    0 calc(100% - 8px)
+  );
+}
+
+.cyber-cut-card {
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - 20px),
+    calc(100% - 20px) 100%,
+    0 100%
+  );
+}
+
 /* Custom glowing effects */
 .glow-red {
   box-shadow: 0 0 25px rgba(229, 29, 54, 0.45);
+}
+
+.glow-red-lg {
+  box-shadow: 0 0 45px rgba(229, 29, 54, 0.35);
 }
 
 .glow-red-sm {
@@ -36,26 +135,32 @@ body {
 }
 
 .glow-text-red {
-  text-shadow: 0 0 15px rgba(229, 29, 54, 0.7);
+  text-shadow: 0 0 18px rgba(229, 29, 54, 0.75), 0 0 35px rgba(229, 29, 54, 0.4);
 }
 
 .gaming-grid {
   background-size: 40px 40px;
   background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    linear-gradient(to right, rgba(229, 29, 54, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(229, 29, 54, 0.05) 1px, transparent 1px);
 }
 
-.hexagon-pattern {
-  background-color: #08090d;
-  background-image: radial-gradient(rgba(229, 29, 54, 0.08) 1px, transparent 1px);
-  background-size: 24px 24px;
+/* Scanline texture */
+.scanline {
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0),
+    rgba(255,255,255,0) 50%,
+    rgba(0, 0, 0, 0.25) 50%,
+    rgba(0, 0, 0, 0.25)
+  );
+  background-size: 100% 4px;
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
@@ -63,7 +168,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #252938;
+  background: #202433;
   border-radius: 4px;
 }
 

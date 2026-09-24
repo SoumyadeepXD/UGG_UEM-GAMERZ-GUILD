@@ -7,6 +7,7 @@ import { siteConfig } from "@/config/site";
 import { Tournament, TournamentStatus } from "@/types/tournament";
 import { getTournaments, saveTournamentsLocally, parseGoogleSheetCsv } from "@/lib/events";
 import { initialTournaments } from "@/data/initialTournaments";
+import { cyberSound } from "@/lib/cyberSound";
 import {
   Shield,
   KeyRound,
@@ -76,6 +77,7 @@ export default function AdminPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (pinInput.trim() === siteConfig.admin.defaultPin) {
+      cyberSound.playLaunch();
       setIsAuthenticated(true);
       sessionStorage.setItem("ugg_admin_auth", "true");
       setPinError(false);
@@ -85,6 +87,7 @@ export default function AdminPage() {
   };
 
   const handleLogout = () => {
+    cyberSound.playClick();
     setIsAuthenticated(false);
     sessionStorage.removeItem("ugg_admin_auth");
     setPinInput("");
@@ -97,6 +100,7 @@ export default function AdminPage() {
       return;
     }
 
+    cyberSound.playLaunch();
     const newTournament: Tournament = {
       ...formData,
       id: `ugg-${Date.now()}`,
@@ -127,6 +131,7 @@ export default function AdminPage() {
 
   const handleDeleteTournament = (id: string) => {
     if (confirm("Are you sure you want to remove this tournament?")) {
+      cyberSound.playClick();
       const updated = tournaments.filter((t) => t.id !== id);
       setTournaments(updated);
       saveTournamentsLocally(updated);
@@ -134,6 +139,7 @@ export default function AdminPage() {
   };
 
   const handleStatusChange = (id: string, newStatus: TournamentStatus) => {
+    cyberSound.playClick();
     const updated = tournaments.map((t) =>
       t.id === id ? { ...t, status: newStatus } : t
     );
