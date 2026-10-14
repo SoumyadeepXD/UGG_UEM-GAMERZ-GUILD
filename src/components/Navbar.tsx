@@ -1,245 +1,186 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
-import { cyberSound } from "@/lib/cyberSound";
-import { Menu, X, Shield, ExternalLink, Gamepad2, Volume2, VolumeX } from "lucide-react";
+import { InstagramIcon, WhatsAppIcon, DiscordIcon } from "@/components/SocialIcons";
+import { Menu, X, Shield, ExternalLink, Gamepad2, ChevronRight } from "lucide-react";
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-
-  useEffect(() => {
-    setIsMuted(cyberSound.getMuted());
-  }, []);
-
-  const handleToggleSound = () => {
-    const newState = cyberSound.toggleMute();
-    setIsMuted(newState);
-  };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-[#08090d]/85 backdrop-blur-md border-b border-[#e51d36]/25">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-[#060709]/90 backdrop-blur-xl border-b border-white/[0.08]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand Logo & Title */}
-        <Link
-          href="/"
-          className="flex items-center gap-3 group"
-          onMouseEnter={() => cyberSound.playHover()}
-          onClick={() => cyberSound.playClick()}
-        >
-          <div className="relative w-11 h-11 flex items-center justify-center p-1 rounded-xl bg-black/70 border border-[#e51d36]/40 group-hover:border-[#e51d36] transition-all duration-300 group-hover:shadow-[0_0_20px_rgba(229,29,54,0.6)]">
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="relative w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl bg-black/60 border border-white/10 group-hover:border-[#ff1e38]/60 transition-all p-1">
             <Image
               src={siteConfig.assets.logo}
               alt="UGG Emblem"
-              width={38}
-              height={38}
+              width={34}
+              height={34}
               className="object-contain"
               priority
             />
           </div>
           <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className="font-black text-xl tracking-wider text-white group-hover:text-[#e51d36] transition-colors">
+            <div className="flex items-center gap-1.5">
+              <span className="font-black text-lg tracking-wide text-white group-hover:text-[#ff1e38] transition-colors">
                 UGG
               </span>
-              <span className="text-[10px] uppercase font-mono font-bold tracking-widest px-1.5 py-0.5 rounded bg-[#e51d36]/15 text-[#e51d36] border border-[#e51d36]/30">
-                v2.0
+              <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-[#ff1e38]/15 text-[#ff1e38] border border-[#ff1e38]/30">
+                UEMK
               </span>
             </div>
-            <span className="text-[11px] font-semibold tracking-wider text-gray-400 group-hover:text-gray-300 transition-colors uppercase">
-              UEMK Gamerz Guild
+            <span className="text-[10px] font-semibold tracking-wider text-gray-400 uppercase -mt-0.5 hidden xs:block">
+              Gamerz Guild
             </span>
           </div>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-7 text-xs font-mono font-bold uppercase tracking-wider text-gray-300">
-          <a
-            href="#home"
-            className="hover:text-[#e51d36] transition-colors py-1 relative group"
-            onMouseEnter={() => cyberSound.playHover()}
-            onClick={() => cyberSound.playClick()}
-          >
-            // 01 Home
-            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#e51d36] transition-all duration-300 group-hover:w-full" />
+        <nav className="hidden md:flex items-center gap-7 text-xs font-bold uppercase tracking-wider text-gray-300">
+          <a href="#home" className="hover:text-white transition-colors py-1">
+            Home
           </a>
-          <a
-            href="#tournaments"
-            className="hover:text-[#e51d36] transition-colors py-1 relative group"
-            onMouseEnter={() => cyberSound.playHover()}
-            onClick={() => cyberSound.playClick()}
-          >
-            // 02 Tournaments
-            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#e51d36] transition-all duration-300 group-hover:w-full" />
+          <a href="#tournaments" className="hover:text-white transition-colors py-1">
+            Tournaments
           </a>
-          <a
-            href="#community"
-            className="hover:text-[#e51d36] transition-colors py-1 relative group"
-            onMouseEnter={() => cyberSound.playHover()}
-            onClick={() => cyberSound.playClick()}
-          >
-            // 03 Community
-            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#e51d36] transition-all duration-300 group-hover:w-full" />
+          <a href="#community" className="hover:text-white transition-colors py-1">
+            Socials
           </a>
-          <a
-            href="#about"
-            className="hover:text-[#e51d36] transition-colors py-1 relative group"
-            onMouseEnter={() => cyberSound.playHover()}
-            onClick={() => cyberSound.playClick()}
-          >
-            // 04 Guild
-            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#e51d36] transition-all duration-300 group-hover:w-full" />
+          <a href="#about" className="hover:text-white transition-colors py-1">
+            About Guild
           </a>
           <Link
             href="/admin"
-            className="flex items-center gap-1.5 text-gray-400 hover:text-white px-2.5 py-1 rounded-md border border-gray-800 hover:border-[#e51d36]/50 bg-black/50 transition-all"
-            onMouseEnter={() => cyberSound.playHover()}
-            onClick={() => cyberSound.playClick()}
+            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white px-2.5 py-1 rounded-lg border border-white/10 hover:border-[#ff1e38]/50 bg-white/[0.03] transition-all"
           >
-            <Shield className="w-3.5 h-3.5 text-[#e51d36]" />
+            <Shield className="w-3.5 h-3.5 text-[#ff1e38]" />
             <span>Admin</span>
           </Link>
         </nav>
 
-        {/* Action Controls & Sound Toggle */}
-        <div className="hidden md:flex items-center gap-3">
-          {/* Cyber SFX Button */}
-          <button
-            onClick={handleToggleSound}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/60 border border-gray-800 hover:border-[#e51d36]/50 text-gray-400 hover:text-white text-xs font-mono transition-all group"
-            title={isMuted ? "Enable Cyber SFX" : "Mute Cyber SFX"}
-            aria-label="Toggle Sound"
-          >
-            {isMuted ? (
-              <>
-                <VolumeX className="w-4 h-4 text-gray-500" />
-                <span className="text-[10px] text-gray-500">SFX OFF</span>
-              </>
-            ) : (
-              <>
-                <Volume2 className="w-4 h-4 text-[#e51d36]" />
-                <div className="flex items-end gap-0.5 h-3.5">
-                  <span className="w-0.5 bg-[#e51d36] h-2 animate-pulse" />
-                  <span className="w-0.5 bg-[#e51d36] h-3 animate-pulse" style={{ animationDelay: "150ms" }} />
-                  <span className="w-0.5 bg-[#e51d36] h-1.5 animate-pulse" style={{ animationDelay: "300ms" }} />
-                </div>
-                <span className="text-[10px] text-emerald-400 font-bold">SFX ON</span>
-              </>
-            )}
-          </button>
-
-          {/* Join Discord CTA */}
+        {/* Right Action Buttons */}
+        <div className="flex items-center gap-2.5">
+          {/* Quick Discord CTA (Desktop) */}
           <a
             href={siteConfig.socials.discord}
             target="_blank"
             rel="noopener noreferrer"
-            onMouseEnter={() => cyberSound.playHover()}
-            onClick={() => cyberSound.playLaunch()}
-            className="relative px-5 py-2.5 cyber-cut-sm text-xs font-extrabold uppercase tracking-wider text-white bg-gradient-to-r from-[#e51d36] to-[#b80d22] hover:from-[#ff2a44] hover:to-[#e51d36] transition-all duration-300 shadow-[0_0_20px_rgba(229,29,54,0.45)] hover:shadow-[0_0_30px_rgba(229,29,54,0.8)] flex items-center gap-2 group"
+            className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-[#ff1e38] to-[#d90429] hover:from-[#ff334b] hover:to-[#ff1e38] transition-all btn-glow-red"
           >
-            <Gamepad2 className="w-4 h-4" />
+            <DiscordIcon className="w-4 h-4" />
             <span>Join Discord</span>
-            <ExternalLink className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-opacity" />
           </a>
-        </div>
 
-        {/* Mobile menu trigger & sound */}
-        <div className="md:hidden flex items-center gap-2">
-          <button
-            onClick={handleToggleSound}
-            className="p-2 rounded-lg bg-black/50 border border-gray-800 text-gray-400 hover:text-white"
-            aria-label="Toggle Sound"
+          {/* Quick WhatsApp Pill (Mobile & Desktop) */}
+          <a
+            href={siteConfig.socials.whatsapp}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex sm:hidden items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600/20 border border-emerald-500/40 hover:bg-emerald-600/30 transition-colors"
+            aria-label="WhatsApp"
           >
-            {isMuted ? <VolumeX className="w-4 h-4 text-gray-500" /> : <Volume2 className="w-4 h-4 text-[#e51d36]" />}
-          </button>
-          <Link
-            href="/admin"
-            className="p-2 rounded-lg text-gray-400 hover:text-white border border-gray-800"
-          >
-            <Shield className="w-4 h-4 text-[#e51d36]" />
-          </Link>
+            <WhatsAppIcon className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="text-[11px]">WhatsApp</span>
+          </a>
+
+          {/* Mobile Menu Hamburger */}
           <button
-            onClick={() => {
-              cyberSound.playClick();
-              setMobileMenuOpen(!mobileMenuOpen);
-            }}
-            className="p-2 rounded-lg text-gray-400 hover:text-white border border-gray-800 focus:outline-none"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 rounded-xl text-gray-300 hover:text-white bg-white/[0.04] border border-white/10 focus:outline-none"
             aria-label="Toggle Menu"
           >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Drawer (Clean Sheet Overlay) */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[#08090d]/95 backdrop-blur-xl border-b border-[#e51d36]/30 px-6 py-6 space-y-4">
-          <div className="flex flex-col space-y-3 font-mono font-bold text-xs uppercase tracking-wider text-gray-200">
+        <div className="md:hidden bg-[#060709]/98 backdrop-blur-2xl border-b border-white/[0.1] px-5 py-5 space-y-4 animate-in slide-in-from-top-2 duration-200">
+          <div className="flex flex-col space-y-1 text-sm font-bold text-gray-200">
             <a
               href="#home"
-              onClick={() => {
-                cyberSound.playClick();
-                setMobileMenuOpen(false);
-              }}
-              className="hover:text-[#e51d36] py-2 border-b border-gray-800/60"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-white/[0.05] transition-colors"
             >
-              // 01 Home Arena
+              <span>Home Arena</span>
+              <ChevronRight className="w-4 h-4 text-gray-500" />
             </a>
             <a
               href="#tournaments"
-              onClick={() => {
-                cyberSound.playClick();
-                setMobileMenuOpen(false);
-              }}
-              className="hover:text-[#e51d36] py-2 border-b border-gray-800/60"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-white/[0.05] transition-colors text-[#ff1e38]"
             >
-              // 02 Upcoming Tournaments
+              <div className="flex items-center gap-2">
+                <span>Tournaments</span>
+                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#ff1e38]/20 text-[#ff1e38]">
+                  Live
+                </span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-500" />
             </a>
             <a
               href="#community"
-              onClick={() => {
-                cyberSound.playClick();
-                setMobileMenuOpen(false);
-              }}
-              className="hover:text-[#e51d36] py-2 border-b border-gray-800/60"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-white/[0.05] transition-colors"
             >
-              // 03 Socials & Channels
+              <span>Community & Channels</span>
+              <ChevronRight className="w-4 h-4 text-gray-500" />
             </a>
             <a
               href="#about"
-              onClick={() => {
-                cyberSound.playClick();
-                setMobileMenuOpen(false);
-              }}
-              className="hover:text-[#e51d36] py-2 border-b border-gray-800/60"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-white/[0.05] transition-colors"
             >
-              // 04 About Guild
+              <span>About Guild</span>
+              <ChevronRight className="w-4 h-4 text-gray-500" />
             </a>
             <Link
               href="/admin"
-              onClick={() => {
-                cyberSound.playClick();
-                setMobileMenuOpen(false);
-              }}
-              className="flex items-center gap-2 py-2 text-[#e51d36]"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between py-2.5 px-3 rounded-lg bg-white/[0.03] border border-white/10 text-gray-300 hover:text-white transition-colors"
             >
-              <Shield className="w-4 h-4" />
-              Event Admin Portal
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-[#ff1e38]" />
+                <span>Admin Coordinator Portal</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-500" />
             </Link>
           </div>
-          <div className="pt-2">
+
+          {/* Mobile Socials Direct Strip */}
+          <div className="pt-2 border-t border-white/[0.08] flex items-center gap-2">
             <a
               href={siteConfig.socials.discord}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => cyberSound.playLaunch()}
-              className="w-full py-3 cyber-cut-sm text-center text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-[#e51d36] to-[#b80d22] flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(229,29,54,0.5)]"
+              className="flex-1 py-3 rounded-xl font-bold uppercase tracking-wider text-xs text-white bg-gradient-to-r from-[#ff1e38] to-[#d90429] flex items-center justify-center gap-2 shadow-lg"
             >
-              <Gamepad2 className="w-4 h-4" />
-              Join Discord Server
+              <DiscordIcon className="w-4 h-4" />
+              <span>Discord</span>
+            </a>
+            <a
+              href={siteConfig.socials.instagram}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-3 rounded-xl bg-white/[0.05] border border-white/10 text-pink-400 hover:bg-white/[0.1] flex items-center justify-center"
+              aria-label="Instagram"
+            >
+              <InstagramIcon className="w-5 h-5" />
+            </a>
+            <a
+              href={siteConfig.socials.whatsapp}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-3 rounded-xl bg-white/[0.05] border border-white/10 text-emerald-400 hover:bg-white/[0.1] flex items-center justify-center"
+              aria-label="WhatsApp"
+            >
+              <WhatsAppIcon className="w-5 h-5" />
             </a>
           </div>
         </div>

@@ -3,14 +3,12 @@
 import React from "react";
 import Image from "next/image";
 import { siteConfig } from "@/config/site";
-import { cyberSound } from "@/lib/cyberSound";
 import {
   ShieldCheck,
   Zap,
   Target,
   Medal,
   Gamepad,
-  Terminal,
 } from "lucide-react";
 
 export default function AboutSection() {
@@ -20,54 +18,47 @@ export default function AboutSection() {
     "EA Sports FC",
     "Counter-Strike 2",
     "Rocket League",
-    "Call of Duty Mobile",
+    "Call of Duty",
     "Free Fire",
-    "Clash Royale",
     "Chess",
   ];
 
   return (
-    <section id="about" className="relative py-24 bg-[#08090d] border-t border-gray-800/80 overflow-hidden">
+    <section id="about" className="relative py-16 sm:py-24 bg-[#08090f] border-t border-white/[0.08] overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          {/* Left Column: Hologram Emblem Card */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          {/* Left Column: Guild Badge Card */}
           <div className="lg:col-span-5 flex flex-col items-center">
-            <div className="relative w-full max-w-md aspect-square rounded-3xl bg-gradient-to-b from-[#141724] to-[#0a0b12] border border-[#e51d36]/40 p-8 shadow-[0_0_45px_rgba(229,29,54,0.3)] flex flex-col items-center justify-center text-center group">
-              {/* Corner HUD accents */}
-              <span className="absolute top-3 left-3 text-[10px] font-mono text-[#e51d36]">[#UGG_CORE]</span>
-              <span className="absolute bottom-3 right-3 text-[10px] font-mono text-[#e51d36]">[v2.0_READY]</span>
-
-              {/* Holographic Radar Ring */}
-              <div className="relative w-36 h-36 mb-6 p-3 rounded-2xl bg-black/85 border border-[#e51d36]/60 shadow-[0_0_30px_rgba(229,29,54,0.6)] group-hover:scale-105 transition-transform duration-300 flex items-center justify-center">
-                <div className="absolute -inset-2 rounded-full border border-dashed border-[#e51d36]/40 animate-radar-spin pointer-events-none" />
+            <div className="relative w-full max-w-sm rounded-3xl bg-[#0f1118] border border-white/10 p-6 sm:p-8 shadow-2xl flex flex-col items-center justify-center text-center">
+              <div className="relative w-28 h-28 sm:w-32 sm:h-32 mb-4 p-3 rounded-2xl bg-black/60 border border-white/10 flex items-center justify-center shadow-lg">
                 <Image
                   src={siteConfig.assets.logo}
                   alt="UGG Emblem"
-                  width={140}
-                  height={140}
-                  className="object-contain"
+                  width={110}
+                  height={110}
+                  className="object-contain drop-shadow-[0_4px_12px_rgba(255,30,56,0.6)]"
                 />
               </div>
 
-              <h3 className="text-2xl font-black text-white uppercase tracking-tight font-sans">
+              <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight">
                 UEMK GAMERZ GUILD
               </h3>
-              <p className="text-xs uppercase font-mono font-extrabold tracking-widest text-[#e51d36] mt-1">
+              <p className="text-[11px] uppercase font-bold tracking-widest text-[#ff1e38] mt-1">
                 Official Esports Society of UEM Kolkata
               </p>
 
-              <div className="w-full mt-6 pt-6 border-t border-gray-800/80 grid grid-cols-3 gap-2 font-mono">
-                <div className="text-center">
-                  <div className="text-base sm:text-lg font-black text-white">LAN & NET</div>
+              <div className="w-full mt-5 pt-5 border-t border-white/[0.08] grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="text-sm sm:text-base font-black text-white">LAN & Online</div>
                   <div className="text-[9px] text-gray-400 uppercase font-semibold">Formats</div>
                 </div>
-                <div className="text-center border-x border-gray-800">
-                  <div className="text-base sm:text-lg font-black text-[#e51d36]">FAIR PLAY</div>
-                  <div className="text-[9px] text-gray-400 uppercase font-semibold">Vigilance</div>
+                <div className="border-x border-white/[0.08]">
+                  <div className="text-sm sm:text-base font-black text-[#ff1e38]">Fair Play</div>
+                  <div className="text-[9px] text-gray-400 uppercase font-semibold">Standard</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-base sm:text-lg font-black text-white">ALL YEAR</div>
-                  <div className="text-[9px] text-gray-400 uppercase font-semibold">Tournaments</div>
+                <div>
+                  <div className="text-sm sm:text-base font-black text-white">All Year</div>
+                  <div className="text-[9px] text-gray-400 uppercase font-semibold">Tourneys</div>
                 </div>
               </div>
             </div>
@@ -75,94 +66,81 @@ export default function AboutSection() {
 
           {/* Right Column: Information & Pillars */}
           <div className="lg:col-span-7">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-[#e51d36]/15 border border-[#e51d36]/30 text-[#e51d36] text-xs font-mono font-bold uppercase tracking-wider mb-3">
-              <Terminal className="w-3.5 h-3.5" />
-              <span>// GUILD_BRIEFING: ABOUT_UGG</span>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#ff1e38]/10 border border-[#ff1e38]/20 text-[#ff1e38] text-[11px] font-bold uppercase tracking-wider mb-3">
+              <Target className="w-3.5 h-3.5" />
+              <span>Who We Are</span>
             </div>
 
-            <h2 className="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight mb-6">
-              Forged by Gamers, <br />
-              <span className="text-[#e51d36] glow-text-red">Driven by Victory</span>
+            <h2 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight mb-4">
+              Built by Gamers, <br />
+              <span className="text-[#ff1e38]">Driven by Competition</span>
             </h2>
 
-            <p className="text-gray-300 text-sm sm:text-base leading-relaxed mb-6 font-medium font-sans">
-              <strong>UEMK Gamerz Guild (UGG)</strong> is the official gaming and collegiate esports organization at the University of Engineering & Management, Kolkata. We provide competitive infrastructure, tournament broadcasting, and high-tier collegiate scrims.
+            <p className="text-gray-300 text-xs sm:text-sm leading-relaxed mb-6 font-medium">
+              <strong>UEMK Gamerz Guild (UGG)</strong> is the official collegiate esports society at the University of Engineering & Management, Kolkata. We organize competitive LAN and online tournaments, manage campus representative rosters, and host active practice scrims.
             </p>
 
-            {/* Pillars Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-              <div
-                className="p-4 rounded-xl bg-[#12141e] border border-gray-800 hover:border-[#e51d36]/50 transition-colors"
-                onMouseEnter={() => cyberSound.playHover()}
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#e51d36]/15 text-[#e51d36] flex items-center justify-center">
+            {/* 4 Pillars Grid (2x2 on mobile & desktop) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-[#0f1118] border border-white/10">
+                <div className="flex items-center gap-2.5 mb-1.5">
+                  <div className="w-7 h-7 rounded-lg bg-[#ff1e38]/15 text-[#ff1e38] flex items-center justify-center">
                     <Medal className="w-4 h-4" />
                   </div>
-                  <h4 className="font-bold text-white text-sm">Verified Tournaments</h4>
+                  <h4 className="font-bold text-white text-xs sm:text-sm">Verified Tournaments</h4>
                 </div>
-                <p className="text-xs text-gray-400 leading-relaxed font-sans">
-                  Transparent brackets, live shoutcasting, anti-cheat vigilance, and prompt cash prize distributions.
+                <p className="text-[11px] text-gray-400 leading-relaxed">
+                  Transparent brackets, official refereeing, and verified cash prize distributions.
                 </p>
               </div>
 
-              <div
-                className="p-4 rounded-xl bg-[#12141e] border border-gray-800 hover:border-indigo-500/50 transition-colors"
-                onMouseEnter={() => cyberSound.playHover()}
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/15 text-indigo-400 flex items-center justify-center">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-[#0f1118] border border-white/10">
+                <div className="flex items-center gap-2.5 mb-1.5">
+                  <div className="w-7 h-7 rounded-lg bg-indigo-500/15 text-indigo-400 flex items-center justify-center">
                     <Zap className="w-4 h-4" />
                   </div>
-                  <h4 className="font-bold text-white text-sm">Scrims & Practice</h4>
+                  <h4 className="font-bold text-white text-xs sm:text-sm">Weekly Scrims</h4>
                 </div>
-                <p className="text-xs text-gray-400 leading-relaxed font-sans">
-                  Weekly practice lobbies, custom rooms, and inter-university scrim matches across all top titles.
+                <p className="text-[11px] text-gray-400 leading-relaxed">
+                  Daily custom lobbies, voice channel coordination, and campus squad scrims.
                 </p>
               </div>
 
-              <div
-                className="p-4 rounded-xl bg-[#12141e] border border-gray-800 hover:border-pink-500/50 transition-colors"
-                onMouseEnter={() => cyberSound.playHover()}
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-pink-500/15 text-pink-400 flex items-center justify-center">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-[#0f1118] border border-white/10">
+                <div className="flex items-center gap-2.5 mb-1.5">
+                  <div className="w-7 h-7 rounded-lg bg-pink-500/15 text-pink-400 flex items-center justify-center">
                     <Gamepad className="w-4 h-4" />
                   </div>
-                  <h4 className="font-bold text-white text-sm">Multi-Platform Roster</h4>
+                  <h4 className="font-bold text-white text-xs sm:text-sm">Multi-Game Roster</h4>
                 </div>
-                <p className="text-xs text-gray-400 leading-relaxed font-sans">
-                  From PC tactical shooters like Valorant to mobile titans like BGMI and PS5 sports simulations.
+                <p className="text-[11px] text-gray-400 leading-relaxed">
+                  Active tournaments in PC shooters (Valorant, CS2), mobile battle royales (BGMI), and sports sims.
                 </p>
               </div>
 
-              <div
-                className="p-4 rounded-xl bg-[#12141e] border border-gray-800 hover:border-emerald-500/50 transition-colors"
-                onMouseEnter={() => cyberSound.playHover()}
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-[#0f1118] border border-white/10">
+                <div className="flex items-center gap-2.5 mb-1.5">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
                     <ShieldCheck className="w-4 h-4" />
                   </div>
-                  <h4 className="font-bold text-white text-sm">Fair Play Standard</h4>
+                  <h4 className="font-bold text-white text-xs sm:text-sm">Fair Play Policy</h4>
                 </div>
-                <p className="text-xs text-gray-400 leading-relaxed font-sans">
-                  Strict zero-tolerance policy towards toxicity, harassment, and unauthorized mods.
+                <p className="text-[11px] text-gray-400 leading-relaxed">
+                  Zero tolerance for toxicity, unauthorized hacks, or unsportsmanlike behavior.
                 </p>
               </div>
             </div>
 
-            {/* Supported Game Badges with Sound */}
+            {/* Competitive Title Tags */}
             <div>
-              <span className="text-xs uppercase font-mono font-extrabold tracking-wider text-gray-400 block mb-3">
-                // ACTIVE_COMPETITIVE_DISCIPLINES:
+              <span className="text-[10px] sm:text-xs uppercase font-extrabold tracking-wider text-gray-400 block mb-2.5">
+                Featured Competitive Titles:
               </span>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {games.map((game, i) => (
                   <span
                     key={i}
-                    onMouseEnter={() => cyberSound.playHover()}
-                    className="px-3 py-1 cyber-cut-sm text-xs font-mono font-bold uppercase tracking-wider bg-black/70 border border-gray-800 text-gray-300 hover:border-[#e51d36] hover:text-white transition-all cursor-default shadow-sm"
+                    className="px-2.5 py-1 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-white/[0.04] border border-white/10 text-gray-300"
                   >
                     {game}
                   </span>

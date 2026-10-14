@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Tournament } from "@/types/tournament";
 import { getTournaments } from "@/lib/events";
-import { cyberSound } from "@/lib/cyberSound";
 import {
   ChevronLeft,
   ChevronRight,
@@ -17,7 +16,6 @@ import {
   Clock,
   Sparkles,
   RefreshCw,
-  Crosshair,
 } from "lucide-react";
 
 export default function EventSlider() {
@@ -27,7 +25,7 @@ export default function EventSlider() {
   const sliderRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
-  const [scrollProgress, setScrollProgress] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   const loadData = async () => {
     setLoading(true);
@@ -45,10 +43,11 @@ export default function EventSlider() {
       const { scrollLeft, scrollWidth, clientWidth } = sliderRef.current;
       setCanScrollLeft(scrollLeft > 10);
       setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
-      const totalScrollable = scrollWidth - clientWidth;
-      if (totalScrollable > 0) {
-        setScrollProgress((scrollLeft / totalScrollable) * 100);
-      }
+
+      // Estimate active card index for dot indicators
+      const cardWidth = clientWidth * 0.85;
+      const index = Math.round(scrollLeft / cardWidth);
+      setActiveIndex(Math.min(index, filteredTournaments.length - 1));
     }
   };
 
@@ -59,18 +58,29 @@ export default function EventSlider() {
   }, [tournaments]);
 
   const scroll = (direction: "left" | "right") => {
-    cyberSound.playClick();
     if (sliderRef.current) {
       const { clientWidth } = sliderRef.current;
-      const scrollAmount = direction === "left" ? -clientWidth * 0.8 : clientWidth * 0.8;
+      const scrollAmount = direction === "left" ? -clientWidth * 0.85 : clientWidth * 0.85;
       sliderRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
-      setTimeout(checkScroll, 350);
+      setTimeout(checkScroll, 300);
+    }
+  };
+
+  const scrollToCard = (index: number) => {
+    if (sliderRef.current) {
+      const cards = sliderRef.current.children;
+      if (cards[index]) {
+        (cards[index] as HTMLElement).scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "start",
+        });
+      }
     }
   };
 
   const handleRegisterClick = (url: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    cyberSound.playLaunch();
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -80,65 +90,52 @@ export default function EventSlider() {
   });
 
   return (
-    <section id="tournaments" className="relative py-24 bg-[#08090d] border-t border-b border-gray-800/80 overflow-hidden">
-      {/* Background ambient lighting */}
-      <div className="absolute inset-0 gaming-grid opacity-30 pointer-events-none" />
-      <div className="absolute top-1/2 -left-40 w-96 h-96 bg-[#e51d36]/10 blur-[130px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-10 right-0 w-80 h-80 bg-red-950/20 blur-[100px] rounded-full pointer-events-none" />
-
+    <section id="tournaments" className="relative py-16 sm:py-24 bg-[#08090f] border-t border-b border-white/[0.08] overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 sm:mb-12 gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-[#e51d36]/15 border border-[#e51d36]/30 text-[#e51d36] text-xs font-mono font-bold uppercase tracking-wider mb-3">
-              <Crosshair className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: "10s" }} />
-              <span>// SYSTEM_PROTOCOL: ARENA_TOURNAMENTS</span>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#ff1e38]/10 border border-[#ff1e38]/20 text-[#ff1e38] text-[11px] font-bold uppercase tracking-wider mb-2">
+              <Flame className="w-3.5 h-3.5" />
+              <span>Campus Tournaments</span>
             </div>
-            <h2 className="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight">
-              Collegiate <span className="text-[#e51d36] glow-text-red">Showdowns</span>
+            <h2 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">
+              Upcoming <span className="text-[#ff1e38]">Showdowns</span>
             </h2>
-            <p className="text-gray-400 text-xs sm:text-sm mt-2 max-w-xl font-mono">
-              Swipe or slide through live tournament brackets. Direct submission into Google Forms.
+            <p className="text-gray-400 text-xs sm:text-sm mt-1 max-w-lg">
+              Swipe to explore active brackets. Tap to open the Google Form and register your squad.
             </p>
           </div>
 
-          {/* Filter Pills & Slider Controls */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center p-1 rounded-xl bg-black/70 border border-gray-800 font-mono">
+          {/* Filter Pills & Desktop Arrow Controls */}
+          <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0">
+            {/* Filter Buttons */}
+            <div className="flex items-center p-1 rounded-xl bg-black/50 border border-white/10 text-xs font-bold">
               <button
-                onClick={() => {
-                  cyberSound.playClick();
-                  setActiveFilter("all");
-                }}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                onClick={() => setActiveFilter("all")}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
                   activeFilter === "all"
-                    ? "bg-[#e51d36] text-white shadow-[0_0_15px_rgba(229,29,54,0.6)]"
+                    ? "bg-[#ff1e38] text-white shadow-sm"
                     : "text-gray-400 hover:text-white"
                 }`}
               >
-                All (0{tournaments.length})
+                All
               </button>
               <button
-                onClick={() => {
-                  cyberSound.playClick();
-                  setActiveFilter("active");
-                }}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                onClick={() => setActiveFilter("active")}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
                   activeFilter === "active"
-                    ? "bg-[#e51d36] text-white shadow-[0_0_15px_rgba(229,29,54,0.6)]"
+                    ? "bg-[#ff1e38] text-white shadow-sm"
                     : "text-gray-400 hover:text-white"
                 }`}
               >
-                Live Now
+                Live
               </button>
               <button
-                onClick={() => {
-                  cyberSound.playClick();
-                  setActiveFilter("upcoming");
-                }}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                onClick={() => setActiveFilter("upcoming")}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
                   activeFilter === "upcoming"
-                    ? "bg-[#e51d36] text-white shadow-[0_0_15px_rgba(229,29,54,0.6)]"
+                    ? "bg-[#ff1e38] text-white shadow-sm"
                     : "text-gray-400 hover:text-white"
                 }`}
               >
@@ -146,29 +143,29 @@ export default function EventSlider() {
               </button>
             </div>
 
-            {/* Slider Navigation Arrows */}
-            <div className="flex items-center gap-2">
+            {/* Desktop Navigation Arrows */}
+            <div className="hidden sm:flex items-center gap-2">
               <button
                 onClick={() => scroll("left")}
                 disabled={!canScrollLeft}
-                className={`p-2.5 rounded-xl border transition-all ${
+                className={`p-2 rounded-xl border border-white/10 transition-all ${
                   canScrollLeft
-                    ? "bg-black/70 border-gray-700 text-white hover:border-[#e51d36] hover:bg-[#e51d36]/20 shadow-[0_0_10px_rgba(229,29,54,0.2)]"
-                    : "bg-black/20 border-gray-800 text-gray-600 cursor-not-allowed"
+                    ? "bg-white/[0.04] text-white hover:bg-white/[0.08]"
+                    : "opacity-30 text-gray-600 cursor-not-allowed"
                 }`}
-                aria-label="Previous events"
+                aria-label="Previous event"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button
                 onClick={() => scroll("right")}
                 disabled={!canScrollRight}
-                className={`p-2.5 rounded-xl border transition-all ${
+                className={`p-2 rounded-xl border border-white/10 transition-all ${
                   canScrollRight
-                    ? "bg-black/70 border-gray-700 text-white hover:border-[#e51d36] hover:bg-[#e51d36]/20 shadow-[0_0_10px_rgba(229,29,54,0.2)]"
-                    : "bg-black/20 border-gray-800 text-gray-600 cursor-not-allowed"
+                    ? "bg-white/[0.04] text-white hover:bg-white/[0.08]"
+                    : "opacity-30 text-gray-600 cursor-not-allowed"
                 }`}
-                aria-label="Next events"
+                aria-label="Next event"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -178,132 +175,127 @@ export default function EventSlider() {
 
         {/* Sliding Panels Carousel Container */}
         {loading ? (
-          <div className="h-96 flex flex-col items-center justify-center text-gray-400 gap-3">
-            <RefreshCw className="w-8 h-8 animate-spin text-[#e51d36]" />
-            <p className="text-xs font-mono tracking-wider uppercase">Loading Tactical Grid...</p>
+          <div className="h-72 flex flex-col items-center justify-center text-gray-400 gap-3">
+            <RefreshCw className="w-7 h-7 animate-spin text-[#ff1e38]" />
+            <p className="text-xs font-semibold">Loading tournament schedule...</p>
           </div>
         ) : filteredTournaments.length === 0 ? (
-          <div className="py-16 text-center bg-black/40 border border-gray-800/80 rounded-2xl p-8">
-            <Gamepad2 className="w-12 h-12 text-[#e51d36] mx-auto mb-3 opacity-60" />
-            <h3 className="text-lg font-bold text-white uppercase font-mono">No Tournaments Deployed</h3>
-            <p className="text-gray-400 text-xs mt-1">Check back soon or join Discord for scrim announcements.</p>
+          <div className="py-12 text-center bg-white/[0.02] border border-white/10 rounded-2xl p-6">
+            <Gamepad2 className="w-10 h-10 text-[#ff1e38] mx-auto mb-2 opacity-50" />
+            <h3 className="text-base font-bold text-white">No tournaments in this category</h3>
+            <p className="text-gray-400 text-xs mt-1">Check back soon or join our WhatsApp community.</p>
           </div>
         ) : (
           <div>
+            {/* Horizontal Scroll Track (Mobile Peek Calibrated: w-[86vw] on phone, snap-start) */}
             <div
               ref={sliderRef}
               onScroll={checkScroll}
-              className="flex items-stretch gap-6 overflow-x-auto pb-6 pt-2 scroll-smooth no-scrollbar snap-x snap-mandatory cursor-grab active:cursor-grabbing"
-              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              className="flex items-stretch gap-4 sm:gap-6 overflow-x-auto pb-4 pt-1 no-scrollbar snap-x snap-mandatory scroll-smooth"
             >
               {filteredTournaments.map((tournament) => (
                 <div
                   key={tournament.id}
-                  onMouseEnter={() => cyberSound.playHover()}
                   onClick={() => handleRegisterClick(tournament.formUrl)}
-                  className="group relative flex-none w-[310px] sm:w-[380px] md:w-[410px] snap-start bg-[#10121a] hover:bg-[#151824] border border-gray-800 hover:border-[#e51d36] rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-[0_0_35px_rgba(229,29,54,0.45)] flex flex-col"
+                  className="group relative flex-none w-[86vw] max-w-[360px] sm:max-w-[380px] snap-start bg-[#12141c] hover:bg-[#161822] border border-white/10 hover:border-[#ff1e38]/50 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 shadow-xl flex flex-col"
                 >
-                  {/* Decorative corner reticle */}
-                  <span className="absolute top-2 right-2 z-20 text-[10px] font-mono text-[#e51d36]/60 group-hover:text-[#e51d36] transition-colors">
-                    [+]
-                  </span>
-
                   {/* Poster Image Container */}
-                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-black/80">
+                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-black/60">
                     <Image
                       src={tournament.posterUrl}
                       alt={tournament.title}
                       fill
-                      sizes="(max-width: 768px) 100vw, 410px"
-                      className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                      sizes="(max-width: 640px) 86vw, 380px"
+                      className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#10121a] via-[#10121a]/30 to-transparent" />
-                    <div className="absolute inset-0 scanline opacity-20 pointer-events-none group-hover:opacity-40 transition-opacity" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#12141c] via-[#12141c]/40 to-transparent" />
 
                     {/* Status Badge */}
-                    <div className="absolute top-3 left-3 flex items-center gap-2 z-10">
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
                       {tournament.status === "active" ? (
-                        <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono font-extrabold uppercase tracking-wider bg-black/80 backdrop-blur-md text-emerald-400 border border-emerald-500/50 shadow-lg">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                          Registration Live
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/80 backdrop-blur-md text-emerald-400 border border-emerald-500/40 badge-glow-green">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          Registration Open
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono font-extrabold uppercase tracking-wider bg-black/80 backdrop-blur-md text-amber-400 border border-amber-500/50 shadow-lg">
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/80 backdrop-blur-md text-amber-400 border border-amber-500/40">
                           <Clock className="w-3 h-3" />
-                          Upcoming Clash
+                          Upcoming
                         </span>
                       )}
                     </div>
 
-                    {/* Game Tag Badge */}
-                    <div className="absolute top-3 right-8 z-10">
-                      <span className="px-2.5 py-1 cyber-cut-sm text-[10px] font-mono font-extrabold uppercase tracking-wider bg-[#e51d36] text-white shadow-[0_0_12px_rgba(229,29,54,0.7)]">
+                    {/* Game Category Badge */}
+                    <div className="absolute top-3 right-3 z-10">
+                      <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-[#ff1e38] text-white shadow-md">
                         {tournament.game}
                       </span>
                     </div>
                   </div>
 
                   {/* Card Content */}
-                  <div className="p-6 flex-1 flex flex-col justify-between">
+                  <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
                     <div>
-                      {/* Date & Platform */}
-                      <div className="flex items-center justify-between text-xs text-gray-400 mb-2 font-mono font-medium">
+                      {/* Date & Schedule */}
+                      <div className="flex items-center justify-between text-xs text-gray-400 mb-2 font-medium">
                         <div className="flex items-center gap-1.5 text-gray-300">
-                          <Calendar className="w-3.5 h-3.5 text-[#e51d36]" />
+                          <Calendar className="w-3.5 h-3.5 text-[#ff1e38]" />
                           <span>{tournament.date}</span>
                         </div>
                         {tournament.platform && (
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-gray-900 border border-gray-800 text-gray-300">
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-white/[0.06] text-gray-300 font-semibold">
                             {tournament.platform}
                           </span>
                         )}
                       </div>
 
                       {/* Tournament Title */}
-                      <h3 className="text-xl font-black text-white group-hover:text-[#e51d36] transition-colors leading-snug line-clamp-1 mb-2 font-sans uppercase">
+                      <h3 className="text-base sm:text-lg font-black text-white group-hover:text-[#ff1e38] transition-colors leading-snug line-clamp-1 mb-2">
                         {tournament.title}
                       </h3>
 
                       {/* Short Description */}
-                      <p className="text-xs text-gray-400 leading-relaxed line-clamp-2 mb-4 font-sans">
+                      <p className="text-xs text-gray-400 leading-relaxed line-clamp-2 mb-4">
                         {tournament.description}
                       </p>
 
-                      {/* Highlights HUD Box */}
-                      <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-black/50 border border-gray-800/80 mb-4 font-mono">
+                      {/* Prize & Format Highlight Box */}
+                      <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-black/40 border border-white/[0.06] mb-4">
                         <div>
-                          <span className="text-[9px] uppercase font-bold text-gray-500 block">
-                            Prize Vault
+                          <span className="text-[9px] uppercase font-bold text-gray-400 block">
+                            Prize Pool
                           </span>
-                          <div className="flex items-center gap-1 text-white font-black text-xs sm:text-sm mt-0.5">
+                          <div className="flex items-center gap-1 text-white font-extrabold text-xs sm:text-sm mt-0.5">
                             <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                            <span className="truncate">{tournament.prizePool}</span>
+                            <span className="truncate text-amber-300 font-mono font-bold">
+                              {tournament.prizePool}
+                            </span>
                           </div>
                         </div>
                         <div>
-                          <span className="text-[9px] uppercase font-bold text-gray-500 block">
+                          <span className="text-[9px] uppercase font-bold text-gray-400 block">
                             Format
                           </span>
                           <div className="flex items-center gap-1 text-white font-bold text-xs sm:text-sm mt-0.5">
-                            <Users className="w-3.5 h-3.5 text-[#e51d36]" />
+                            <Users className="w-3.5 h-3.5 text-[#ff1e38]" />
                             <span className="truncate">{tournament.format}</span>
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Action button */}
-                    <div className="pt-2">
+                    {/* Direct Registration Button */}
+                    <div className="pt-1">
                       <button
                         onClick={(e) => handleRegisterClick(tournament.formUrl, e)}
-                        className="w-full py-3 px-4 cyber-cut text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-[#e51d36] to-[#b80d22] group-hover:from-[#ff2a44] group-hover:to-[#e51d36] transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(229,29,54,0.35)] group-hover:shadow-[0_0_25px_rgba(229,29,54,0.7)]"
+                        className="w-full min-h-[46px] py-3 px-4 rounded-xl font-bold uppercase tracking-wider text-xs text-white bg-gradient-to-r from-[#ff1e38] to-[#d90429] hover:from-[#ff334b] hover:to-[#ff1e38] transition-all flex items-center justify-center gap-2 btn-glow-red"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
-                        <span>Register via Google Form</span>
-                        <ExternalLink className="w-3.5 h-3.5 ml-1 opacity-70 group-hover:opacity-100 transition-opacity" />
+                        <span>Register on Google Form</span>
+                        <ExternalLink className="w-3.5 h-3.5 ml-1 opacity-80" />
                       </button>
-                      <p className="text-[10px] text-center text-gray-500 mt-2 font-mono">
-                        // Direct redirect to Google Form application
+                      <p className="text-[10px] text-center text-gray-400 mt-1.5">
+                        Tap anywhere on card to open form
                       </p>
                     </div>
                   </div>
@@ -311,16 +303,18 @@ export default function EventSlider() {
               ))}
             </div>
 
-            {/* Slider Progress Bar (Cross-device indicator) */}
-            <div className="mt-4 max-w-md mx-auto flex items-center gap-3">
-              <span className="text-[10px] font-mono text-gray-500">01</span>
-              <div className="flex-1 h-1 bg-gray-900 rounded-full overflow-hidden relative">
-                <div
-                  className="h-full bg-[#e51d36] shadow-[0_0_8px_rgba(229,29,54,0.8)] transition-all duration-150"
-                  style={{ width: `${Math.max(15, scrollProgress)}%` }}
+            {/* Mobile Dot Indicators */}
+            <div className="flex sm:hidden items-center justify-center gap-1.5 mt-4">
+              {filteredTournaments.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => scrollToCard(idx)}
+                  className={`h-1.5 rounded-full transition-all ${
+                    activeIndex === idx ? "w-6 bg-[#ff1e38]" : "w-1.5 bg-white/20"
+                  }`}
+                  aria-label={`Go to slide ${idx + 1}`}
                 />
-              </div>
-              <span className="text-[10px] font-mono text-gray-500">0{tournaments.length}</span>
+              ))}
             </div>
           </div>
         )}

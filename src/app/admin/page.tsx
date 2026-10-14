@@ -199,11 +199,11 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen bg-[#08090d] flex items-center justify-center p-4 relative overflow-hidden">
         <div className="absolute inset-0 gaming-grid opacity-30 pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#e51d36]/15 blur-[150px] rounded-full pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#ff1e38]/15 blur-[150px] rounded-full pointer-events-none" />
 
-        <div className="relative z-10 w-full max-w-md bg-[#12141e] border border-[#e51d36]/30 rounded-3xl p-8 shadow-[0_0_40px_rgba(229,29,54,0.25)]">
+        <div className="relative z-10 w-full max-w-md bg-[#12141e] border border-[#ff1e38]/30 rounded-3xl p-8 shadow-[0_0_40px_rgba(229,29,54,0.25)]">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-black/60 border border-[#e51d36]/40 p-2 mx-auto mb-4 flex items-center justify-center shadow-[0_0_20px_rgba(229,29,54,0.4)]">
+            <div className="w-16 h-16 rounded-2xl bg-black/60 border border-[#ff1e38]/40 p-2 mx-auto mb-4 flex items-center justify-center shadow-[0_0_20px_rgba(229,29,54,0.4)]">
               <Image
                 src={siteConfig.assets.logo}
                 alt="UGG"
@@ -231,7 +231,7 @@ export default function AdminPage() {
                   value={pinInput}
                   onChange={(e) => setPinInput(e.target.value)}
                   placeholder="Enter passcode (e.g. ugg2026)"
-                  className="w-full bg-black/50 border border-gray-800 focus:border-[#e51d36] rounded-xl px-4 py-3 text-white text-sm outline-none transition-all pr-12 shadow-inner"
+                  className="w-full bg-black/50 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-4 py-3 text-white text-sm outline-none transition-all pr-12 shadow-inner"
                   autoFocus
                 />
                 <button
@@ -251,7 +251,7 @@ export default function AdminPage() {
 
             <button
               type="submit"
-              className="w-full py-3.5 rounded-xl font-bold uppercase tracking-wider text-xs text-white bg-gradient-to-r from-[#e51d36] to-[#b80d22] hover:from-[#ff2a44] hover:to-[#e51d36] transition-all duration-300 shadow-[0_0_20px_rgba(229,29,54,0.4)] flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-xl font-bold uppercase tracking-wider text-xs text-white bg-gradient-to-r from-[#ff1e38] to-[#b80d22] hover:from-[#ff2a44] hover:to-[#ff1e38] transition-all duration-300 shadow-[0_0_20px_rgba(229,29,54,0.4)] flex items-center justify-center gap-2"
             >
               <KeyRound className="w-4 h-4" />
               <span>Unlock Admin Panel</span>
@@ -280,12 +280,12 @@ export default function AdminPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2 text-xs font-semibold text-gray-400 hover:text-white">
-              <ArrowLeft className="w-4 h-4 text-[#e51d36]" />
+              <ArrowLeft className="w-4 h-4 text-[#ff1e38]" />
               <span>Back to Site</span>
             </Link>
             <span className="text-gray-700">|</span>
             <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-[#e51d36]" />
+              <Shield className="w-4 h-4 text-[#ff1e38]" />
               <span className="font-extrabold text-sm tracking-wider uppercase">
                 UGG Tournament Manager
               </span>
@@ -331,7 +331,7 @@ export default function AdminPage() {
         {/* Section 1: Add Event Form with Live Card Preview */}
         <section className="bg-[#10121b] border border-gray-800 rounded-3xl p-6 sm:p-8">
           <div className="flex items-center gap-2.5 mb-6">
-            <div className="w-8 h-8 rounded-lg bg-[#e51d36]/15 text-[#e51d36] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#ff1e38]/15 text-[#ff1e38] flex items-center justify-center">
               <Plus className="w-5 h-5" />
             </div>
             <div>
@@ -358,7 +358,7 @@ export default function AdminPage() {
                     placeholder="e.g. Valorant Winter Cup"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#e51d36] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
                   />
                 </div>
 
@@ -369,7 +369,7 @@ export default function AdminPage() {
                   <select
                     value={formData.game}
                     onChange={(e) => setFormData({ ...formData, game: e.target.value })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#e51d36] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
                   >
                     <option value="Valorant">Valorant</option>
                     <option value="BGMI">BGMI</option>
@@ -395,7 +395,7 @@ export default function AdminPage() {
                     placeholder="e.g. Oct 25 - 27, 2026"
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#e51d36] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
                   />
                 </div>
 
@@ -408,7 +408,7 @@ export default function AdminPage() {
                     placeholder="e.g. ₹10,000 + Trophies"
                     value={formData.prizePool}
                     onChange={(e) => setFormData({ ...formData, prizePool: e.target.value })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#e51d36] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
                   />
                 </div>
 
@@ -421,7 +421,7 @@ export default function AdminPage() {
                     placeholder="e.g. 5v5 Knockout"
                     value={formData.format}
                     onChange={(e) => setFormData({ ...formData, format: e.target.value })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#e51d36] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
                   />
                 </div>
               </div>
@@ -435,7 +435,7 @@ export default function AdminPage() {
                   placeholder="https://images.unsplash.com/... or Imgur/Cloud link"
                   value={formData.posterUrl}
                   onChange={(e) => setFormData({ ...formData, posterUrl: e.target.value })}
-                  className="w-full bg-black/60 border border-gray-800 focus:border-[#e51d36] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                  className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
                 />
               </div>
 
@@ -449,7 +449,7 @@ export default function AdminPage() {
                   placeholder="https://docs.google.com/forms/d/e/.../viewform"
                   value={formData.formUrl}
                   onChange={(e) => setFormData({ ...formData, formUrl: e.target.value })}
-                  className="w-full bg-black/60 border border-gray-800 focus:border-[#e51d36] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none text-[#e51d36]"
+                  className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none text-[#ff1e38]"
                 />
               </div>
 
@@ -462,7 +462,7 @@ export default function AdminPage() {
                   placeholder="Brief description of bracket rules, requirements, and eligibility..."
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full bg-black/60 border border-gray-800 focus:border-[#e51d36] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none resize-none"
+                  className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none resize-none"
                 />
               </div>
 
@@ -474,7 +474,7 @@ export default function AdminPage() {
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value as TournamentStatus })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#e51d36] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
                   >
                     <option value="active">Active (Registration Live)</option>
                     <option value="upcoming">Upcoming (Coming Soon)</option>
@@ -491,7 +491,7 @@ export default function AdminPage() {
                     placeholder="e.g. PC, Mobile, PS5"
                     value={formData.platform}
                     onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#e51d36] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
                   />
                 </div>
               </div>
@@ -499,7 +499,7 @@ export default function AdminPage() {
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full py-3.5 rounded-xl font-bold uppercase tracking-wider text-xs text-white bg-gradient-to-r from-[#e51d36] to-[#b80d22] hover:from-[#ff2a44] hover:to-[#e51d36] transition-all duration-300 shadow-[0_0_20px_rgba(229,29,54,0.4)] flex items-center justify-center gap-2"
+                  className="w-full py-3.5 rounded-xl font-bold uppercase tracking-wider text-xs text-white bg-gradient-to-r from-[#ff1e38] to-[#b80d22] hover:from-[#ff2a44] hover:to-[#ff1e38] transition-all duration-300 shadow-[0_0_20px_rgba(229,29,54,0.4)] flex items-center justify-center gap-2"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>Publish Tournament to Site</span>
@@ -510,7 +510,7 @@ export default function AdminPage() {
             {/* Live Preview Card */}
             <div className="lg:col-span-5 bg-black/50 border border-gray-800/80 rounded-2xl p-5">
               <div className="flex items-center justify-between mb-3 text-xs font-bold uppercase tracking-wider text-gray-400">
-                <span className="flex items-center gap-1.5 text-[#e51d36]">
+                <span className="flex items-center gap-1.5 text-[#ff1e38]">
                   <Eye className="w-4 h-4" />
                   Live Preview
                 </span>
@@ -518,7 +518,7 @@ export default function AdminPage() {
               </div>
 
               {/* Exact Preview Card */}
-              <div className="bg-[#12141d] border border-[#e51d36]/60 rounded-2xl overflow-hidden shadow-[0_0_20px_rgba(229,29,54,0.25)]">
+              <div className="bg-[#12141d] border border-[#ff1e38]/60 rounded-2xl overflow-hidden shadow-[0_0_20px_rgba(229,29,54,0.25)]">
                 <div className="relative aspect-[16/10] w-full overflow-hidden bg-black/70">
                   <img
                     src={formData.posterUrl || "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1200&auto=format&fit=crop"}
@@ -535,7 +535,7 @@ export default function AdminPage() {
                     </span>
                   </div>
                   <div className="absolute top-3 right-3">
-                    <span className="px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-[#e51d36] text-white">
+                    <span className="px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-[#ff1e38] text-white">
                       {formData.game}
                     </span>
                   </div>
@@ -544,7 +544,7 @@ export default function AdminPage() {
                 <div className="p-4 space-y-3">
                   <div className="flex items-center justify-between text-[11px] text-gray-400">
                     <span className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-[#e51d36]" />
+                      <Calendar className="w-3 h-3 text-[#ff1e38]" />
                       {formData.date || "Date TBA"}
                     </span>
                     <span className="bg-gray-800 px-1.5 py-0.5 rounded text-[10px]">
@@ -571,7 +571,7 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  <div className="w-full py-2.5 rounded-lg font-bold uppercase tracking-wider text-[11px] text-white bg-gradient-to-r from-[#e51d36] to-[#b80d22] text-center flex items-center justify-center gap-1.5">
+                  <div className="w-full py-2.5 rounded-lg font-bold uppercase tracking-wider text-[11px] text-white bg-gradient-to-r from-[#ff1e38] to-[#b80d22] text-center flex items-center justify-center gap-1.5">
                     <span>Register via Google Form</span>
                     <ExternalLink className="w-3 h-3" />
                   </div>
@@ -585,7 +585,7 @@ export default function AdminPage() {
         <section className="bg-[#10121b] border border-gray-800 rounded-3xl p-6 sm:p-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#e51d36]/15 text-[#e51d36] flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-[#ff1e38]/15 text-[#ff1e38] flex items-center justify-center">
                 <Layers className="w-5 h-5" />
               </div>
               <div>
@@ -625,7 +625,7 @@ export default function AdminPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-black text-white">{t.title}</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-[#e51d36]/20 text-[#e51d36] font-bold">
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-[#ff1e38]/20 text-[#ff1e38] font-bold">
                           {t.game}
                         </span>
                       </div>
