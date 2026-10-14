@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Monitor,
 } from "lucide-react";
+import ScrollReveal from "@/components/ScrollReveal";
 
 export default function EventSlider() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
@@ -97,37 +98,39 @@ export default function EventSlider() {
     <section id="tournaments" className="relative py-14 sm:py-20 bg-[#060709] border-t border-b border-white/[0.08] overflow-hidden">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
-        <div className="flex items-end justify-between mb-6 sm:mb-8">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#ff1e38]/10 border border-[#ff1e38]/20 text-[#ff1e38] text-[11px] font-bold uppercase tracking-wider mb-2">
-              <Flame className="w-3.5 h-3.5" />
-              <span>Tournaments Arena</span>
+        <ScrollReveal direction="up" delay={50}>
+          <div className="flex items-end justify-between mb-6 sm:mb-8">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#ff1e38]/10 border border-[#ff1e38]/20 text-[#ff1e38] text-[11px] font-bold uppercase tracking-wider mb-2">
+                <Flame className="w-3.5 h-3.5" />
+                <span>Tournaments Arena</span>
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">
+                Featured <span className="text-[#ff1e38]">Showdowns</span>
+              </h2>
             </div>
-            <h2 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">
-              Featured <span className="text-[#ff1e38]">Showdowns</span>
-            </h2>
-          </div>
 
-          {/* Prev/Next arrows for desktop & tablet */}
-          {tournaments.length > 1 && (
-            <div className="hidden sm:flex items-center gap-2">
-              <button
-                onClick={handlePrev}
-                className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white transition-all shadow-md active:scale-95"
-                aria-label="Previous Tournament"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button
-                onClick={handleNext}
-                className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white transition-all shadow-md active:scale-95"
-                aria-label="Next Tournament"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-          )}
-        </div>
+            {/* Prev/Next arrows for desktop & tablet */}
+            {tournaments.length > 1 && (
+              <div className="hidden sm:flex items-center gap-2">
+                <button
+                  onClick={handlePrev}
+                  className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white transition-all shadow-md active:scale-95"
+                  aria-label="Previous Tournament"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={handleNext}
+                  className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white transition-all shadow-md active:scale-95"
+                  aria-label="Next Tournament"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </div>
+        </ScrollReveal>
 
         {/* Loading State */}
         {loading || !current ? (
@@ -136,11 +139,12 @@ export default function EventSlider() {
             <p className="text-xs font-semibold">Loading tournament carousel...</p>
           </div>
         ) : (
-          <div
-            className="flex flex-col gap-4"
-            onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
-          >
+          <ScrollReveal direction="scale" delay={120}>
+            <div
+              className="flex flex-col gap-4"
+              onMouseEnter={() => setIsPaused(true)}
+              onMouseLeave={() => setIsPaused(false)}
+            >
             {/* Main Full-Bleed Poster Carousel Card */}
             <div
               onTouchStart={onTouchStart}
@@ -319,7 +323,8 @@ export default function EventSlider() {
                 })}
               </div>
             </div>
-          </div>
+            </div>
+          </ScrollReveal>
         )}
       </div>
     </section>
