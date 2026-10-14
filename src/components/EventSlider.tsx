@@ -95,7 +95,7 @@ export default function EventSlider() {
   };
 
   return (
-    <section id="tournaments" className="relative py-14 sm:py-20 bg-[#060709] border-t border-b border-white/[0.08] overflow-hidden">
+    <section id="tournaments" className="relative pt-24 pb-12 sm:pt-28 sm:pb-16 bg-[#060709] border-b border-white/[0.08] overflow-hidden">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
         <ScrollReveal direction="up" delay={50}>

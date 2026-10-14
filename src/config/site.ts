@@ -21,5 +21,6 @@ export const siteConfig = {
     defaultPin: "ugg2026",
     storageKey: "ugg_tournaments_v1",
     sheetUrlKey: "ugg_sheet_csv_url",
+    spotlightKey: "ugg_hero_spotlight_v1",
   },
 };

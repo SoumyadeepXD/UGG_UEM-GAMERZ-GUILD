@@ -14,9 +14,9 @@ export default function Home() {
       <ScrollProgress />
       <Navbar />
       <main className="flex-1 relative z-10">
-        <Hero />
-        <CyberTicker />
         <EventSlider />
+        <CyberTicker />
+        <Hero />
         <CommunityHub />
         <AboutSection />
       </main>
