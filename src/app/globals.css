@@ -49,6 +49,17 @@ body {
   animation-play-state: paused;
 }
 
+/* 5-second slide timer animation */
+@keyframes slide-timer {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+.animate-slide-timer {
+  animation: slide-timer 5000ms linear forwards;
+  will-change: width;
+}
+
 /* Subtle, tasteful glow for buttons and live indicators */
 .btn-glow-red {
   box-shadow: 0 4px 20px rgba(255, 30, 56, 0.35);

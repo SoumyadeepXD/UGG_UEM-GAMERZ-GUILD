@@ -40,16 +40,16 @@ export default function EventSlider() {
     loadData();
   }, []);
 
-  // Auto-play slideshow every 5.5 seconds
+  // Auto-play slideshow every 5.0 seconds
   useEffect(() => {
     if (tournaments.length <= 1 || isPaused) return;
 
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % tournaments.length);
-    }, 5500);
+    }, 5000);
 
     return () => clearInterval(timer);
-  }, [tournaments.length, isPaused]);
+  }, [tournaments.length, isPaused, currentIndex]);
 
   const handlePrev = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -153,6 +153,16 @@ export default function EventSlider() {
               onClick={() => handleRegister(current.formUrl)}
               className="group relative w-full h-[510px] sm:h-[520px] rounded-3xl overflow-hidden bg-black border border-white/10 hover:border-[#ff1e38]/50 transition-all duration-300 shadow-2xl cursor-pointer flex flex-col justify-end"
             >
+              {/* 5-Second Slide Timer Bar along top edge of event window */}
+              <div className="absolute top-0 left-0 right-0 h-1 sm:h-1.5 bg-white/15 z-30 overflow-hidden pointer-events-none">
+                <div
+                  key={currentIndex}
+                  className={`h-full bg-gradient-to-r from-[#ff1e38] via-[#ff4d61] to-[#ff1e38] shadow-[0_0_12px_rgba(255,30,56,0.9)] ${
+                    isPaused ? "w-full opacity-40" : "animate-slide-timer"
+                  }`}
+                />
+              </div>
+
               {/* Poster Image (Fills the entire slide) */}
               <div className="absolute inset-0 z-0">
                 <Image
