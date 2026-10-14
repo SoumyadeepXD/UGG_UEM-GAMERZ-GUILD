@@ -16,305 +16,308 @@ import {
   Clock,
   Sparkles,
   RefreshCw,
+  Monitor,
 } from "lucide-react";
 
 export default function EventSlider() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "upcoming">("all");
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
-  const loadData = async () => {
-    setLoading(true);
-    const data = await getTournaments();
-    setTournaments(data);
-    setLoading(false);
-  };
+  // Touch Swipe tracking for Mobile
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      const data = await getTournaments();
+      setTournaments(data);
+      setLoading(false);
+    };
     loadData();
   }, []);
 
-  const checkScroll = () => {
-    if (sliderRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = sliderRef.current;
-      setCanScrollLeft(scrollLeft > 10);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
-
-      // Estimate active card index for dot indicators
-      const cardWidth = clientWidth * 0.85;
-      const index = Math.round(scrollLeft / cardWidth);
-      setActiveIndex(Math.min(index, filteredTournaments.length - 1));
-    }
-  };
-
+  // Auto-play slideshow every 5.5 seconds
   useEffect(() => {
-    checkScroll();
-    window.addEventListener("resize", checkScroll);
-    return () => window.removeEventListener("resize", checkScroll);
-  }, [tournaments]);
+    if (tournaments.length <= 1 || isPaused) return;
 
-  const scroll = (direction: "left" | "right") => {
-    if (sliderRef.current) {
-      const { clientWidth } = sliderRef.current;
-      const scrollAmount = direction === "left" ? -clientWidth * 0.85 : clientWidth * 0.85;
-      sliderRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
-      setTimeout(checkScroll, 300);
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % tournaments.length);
+    }, 5500);
+
+    return () => clearInterval(timer);
+  }, [tournaments.length, isPaused]);
+
+  const handlePrev = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setCurrentIndex((prev) => (prev - 1 + tournaments.length) % tournaments.length);
+  };
+
+  const handleNext = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setCurrentIndex((prev) => (prev + 1) % tournaments.length);
+  };
+
+  // Touch handlers for mobile swipe
+  const minSwipeDistance = 45;
+  const onTouchStart = (e: React.TouchEvent) => {
+    setIsPaused(true);
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    setIsPaused(false);
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      handleNext();
+    } else if (isRightSwipe) {
+      handlePrev();
     }
   };
 
-  const scrollToCard = (index: number) => {
-    if (sliderRef.current) {
-      const cards = sliderRef.current.children;
-      if (cards[index]) {
-        (cards[index] as HTMLElement).scrollIntoView({
-          behavior: "smooth",
-          block: "nearest",
-          inline: "start",
-        });
-      }
-    }
-  };
+  const current = tournaments[currentIndex];
 
-  const handleRegisterClick = (url: string, e?: React.MouseEvent) => {
+  const handleRegister = (url: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const filteredTournaments = tournaments.filter((t) => {
-    if (activeFilter === "all") return true;
-    return t.status === activeFilter;
-  });
-
   return (
-    <section id="tournaments" className="relative py-16 sm:py-24 bg-[#08090f] border-t border-b border-white/[0.08] overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+    <section id="tournaments" className="relative py-14 sm:py-20 bg-[#060709] border-t border-b border-white/[0.08] overflow-hidden">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 sm:mb-12 gap-4">
+        <div className="flex items-end justify-between mb-6 sm:mb-8">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#ff1e38]/10 border border-[#ff1e38]/20 text-[#ff1e38] text-[11px] font-bold uppercase tracking-wider mb-2">
               <Flame className="w-3.5 h-3.5" />
-              <span>Campus Tournaments</span>
+              <span>Tournaments Arena</span>
             </div>
             <h2 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">
-              Upcoming <span className="text-[#ff1e38]">Showdowns</span>
+              Featured <span className="text-[#ff1e38]">Showdowns</span>
             </h2>
-            <p className="text-gray-400 text-xs sm:text-sm mt-1 max-w-lg">
-              Swipe to explore active brackets. Tap to open the Google Form and register your squad.
-            </p>
           </div>
 
-          {/* Filter Pills & Desktop Arrow Controls */}
-          <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0">
-            {/* Filter Buttons */}
-            <div className="flex items-center p-1 rounded-xl bg-black/50 border border-white/10 text-xs font-bold">
-              <button
-                onClick={() => setActiveFilter("all")}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  activeFilter === "all"
-                    ? "bg-[#ff1e38] text-white shadow-sm"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setActiveFilter("active")}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  activeFilter === "active"
-                    ? "bg-[#ff1e38] text-white shadow-sm"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                Live
-              </button>
-              <button
-                onClick={() => setActiveFilter("upcoming")}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  activeFilter === "upcoming"
-                    ? "bg-[#ff1e38] text-white shadow-sm"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                Upcoming
-              </button>
-            </div>
-
-            {/* Desktop Navigation Arrows */}
+          {/* Prev/Next arrows for desktop & tablet */}
+          {tournaments.length > 1 && (
             <div className="hidden sm:flex items-center gap-2">
               <button
-                onClick={() => scroll("left")}
-                disabled={!canScrollLeft}
-                className={`p-2 rounded-xl border border-white/10 transition-all ${
-                  canScrollLeft
-                    ? "bg-white/[0.04] text-white hover:bg-white/[0.08]"
-                    : "opacity-30 text-gray-600 cursor-not-allowed"
-                }`}
-                aria-label="Previous event"
+                onClick={handlePrev}
+                className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white transition-all shadow-md active:scale-95"
+                aria-label="Previous Tournament"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button
-                onClick={() => scroll("right")}
-                disabled={!canScrollRight}
-                className={`p-2 rounded-xl border border-white/10 transition-all ${
-                  canScrollRight
-                    ? "bg-white/[0.04] text-white hover:bg-white/[0.08]"
-                    : "opacity-30 text-gray-600 cursor-not-allowed"
-                }`}
-                aria-label="Next event"
+                onClick={handleNext}
+                className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white transition-all shadow-md active:scale-95"
+                aria-label="Next Tournament"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Sliding Panels Carousel Container */}
-        {loading ? (
-          <div className="h-72 flex flex-col items-center justify-center text-gray-400 gap-3">
-            <RefreshCw className="w-7 h-7 animate-spin text-[#ff1e38]" />
-            <p className="text-xs font-semibold">Loading tournament schedule...</p>
-          </div>
-        ) : filteredTournaments.length === 0 ? (
-          <div className="py-12 text-center bg-white/[0.02] border border-white/10 rounded-2xl p-6">
-            <Gamepad2 className="w-10 h-10 text-[#ff1e38] mx-auto mb-2 opacity-50" />
-            <h3 className="text-base font-bold text-white">No tournaments in this category</h3>
-            <p className="text-gray-400 text-xs mt-1">Check back soon or join our WhatsApp community.</p>
+        {/* Loading State */}
+        {loading || !current ? (
+          <div className="h-[460px] sm:h-[500px] rounded-3xl bg-[#0f1118] border border-white/10 flex flex-col items-center justify-center text-gray-400 gap-3">
+            <RefreshCw className="w-8 h-8 animate-spin text-[#ff1e38]" />
+            <p className="text-xs font-semibold">Loading tournament carousel...</p>
           </div>
         ) : (
-          <div>
-            {/* Horizontal Scroll Track (Mobile Peek Calibrated: w-[86vw] on phone, snap-start) */}
+          <div
+            className="flex flex-col gap-4"
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+          >
+            {/* Main Full-Bleed Poster Carousel Card */}
             <div
-              ref={sliderRef}
-              onScroll={checkScroll}
-              className="flex items-stretch gap-4 sm:gap-6 overflow-x-auto pb-4 pt-1 no-scrollbar snap-x snap-mandatory scroll-smooth"
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+              onClick={() => handleRegister(current.formUrl)}
+              className="group relative w-full h-[510px] sm:h-[520px] rounded-3xl overflow-hidden bg-black border border-white/10 hover:border-[#ff1e38]/50 transition-all duration-300 shadow-2xl cursor-pointer flex flex-col justify-end"
             >
-              {filteredTournaments.map((tournament) => (
-                <div
-                  key={tournament.id}
-                  onClick={() => handleRegisterClick(tournament.formUrl)}
-                  className="group relative flex-none w-[86vw] max-w-[360px] sm:max-w-[380px] snap-start bg-[#12141c] hover:bg-[#161822] border border-white/10 hover:border-[#ff1e38]/50 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 shadow-xl flex flex-col"
-                >
-                  {/* Poster Image Container */}
-                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-black/60">
-                    <Image
-                      src={tournament.posterUrl}
-                      alt={tournament.title}
-                      fill
-                      sizes="(max-width: 640px) 86vw, 380px"
-                      className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#12141c] via-[#12141c]/40 to-transparent" />
+              {/* Poster Image (Fills the entire slide) */}
+              <div className="absolute inset-0 z-0">
+                <Image
+                  key={current.id}
+                  src={current.posterUrl}
+                  alt={current.title}
+                  fill
+                  priority
+                  sizes="(max-width: 768px) 100vw, 1200px"
+                  className="object-cover object-center transition-all duration-700 ease-out scale-100 group-hover:scale-105"
+                />
 
-                    {/* Status Badge */}
-                    <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
-                      {tournament.status === "active" ? (
-                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/80 backdrop-blur-md text-emerald-400 border border-emerald-500/40 badge-glow-green">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                          Registration Open
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/80 backdrop-blur-md text-amber-400 border border-amber-500/40">
-                          <Clock className="w-3 h-3" />
-                          Upcoming
-                        </span>
-                      )}
-                    </div>
+                {/* Top Subtle Gradient for Top Badges */}
+                <div className="absolute top-0 left-0 right-0 h-28 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none" />
 
-                    {/* Game Category Badge */}
-                    <div className="absolute top-3 right-3 z-10">
-                      <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-[#ff1e38] text-white shadow-md">
-                        {tournament.game}
-                      </span>
-                    </div>
-                  </div>
+                {/* Solid Deep Black Gradient from Bottom Upwards (Makes text 100% sharp!) */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/90 via-45% to-transparent pointer-events-none" />
+              </div>
 
-                  {/* Card Content */}
-                  <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
-                    <div>
-                      {/* Date & Schedule */}
-                      <div className="flex items-center justify-between text-xs text-gray-400 mb-2 font-medium">
-                        <div className="flex items-center gap-1.5 text-gray-300">
-                          <Calendar className="w-3.5 h-3.5 text-[#ff1e38]" />
-                          <span>{tournament.date}</span>
-                        </div>
-                        {tournament.platform && (
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-white/[0.06] text-gray-300 font-semibold">
-                            {tournament.platform}
-                          </span>
-                        )}
-                      </div>
+              {/* Floating Prev / Next on Mobile (Small subtle side tap areas) */}
+              <button
+                onClick={handlePrev}
+                className="sm:hidden absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-lg"
+                aria-label="Previous"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleNext}
+                className="sm:hidden absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow-lg"
+                aria-label="Next"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
 
-                      {/* Tournament Title */}
-                      <h3 className="text-base sm:text-lg font-black text-white group-hover:text-[#ff1e38] transition-colors leading-snug line-clamp-1 mb-2">
-                        {tournament.title}
-                      </h3>
+              {/* Top Bar inside Slide: Status + Game Badge + Slide Counter */}
+              <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {current.status === "active" ? (
+                    <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/80 backdrop-blur-md text-emerald-400 border border-emerald-500/40 badge-glow-green">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      Registration Live
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/80 backdrop-blur-md text-amber-400 border border-amber-500/40">
+                      <Clock className="w-3 h-3" />
+                      Upcoming
+                    </span>
+                  )}
 
-                      {/* Short Description */}
-                      <p className="text-xs text-gray-400 leading-relaxed line-clamp-2 mb-4">
-                        {tournament.description}
-                      </p>
-
-                      {/* Prize & Format Highlight Box */}
-                      <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-black/40 border border-white/[0.06] mb-4">
-                        <div>
-                          <span className="text-[9px] uppercase font-bold text-gray-400 block">
-                            Prize Pool
-                          </span>
-                          <div className="flex items-center gap-1 text-white font-extrabold text-xs sm:text-sm mt-0.5">
-                            <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                            <span className="truncate text-amber-300 font-mono font-bold">
-                              {tournament.prizePool}
-                            </span>
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-[9px] uppercase font-bold text-gray-400 block">
-                            Format
-                          </span>
-                          <div className="flex items-center gap-1 text-white font-bold text-xs sm:text-sm mt-0.5">
-                            <Users className="w-3.5 h-3.5 text-[#ff1e38]" />
-                            <span className="truncate">{tournament.format}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Direct Registration Button */}
-                    <div className="pt-1">
-                      <button
-                        onClick={(e) => handleRegisterClick(tournament.formUrl, e)}
-                        className="w-full min-h-[46px] py-3 px-4 rounded-xl font-bold uppercase tracking-wider text-xs text-white bg-gradient-to-r from-[#ff1e38] to-[#d90429] hover:from-[#ff334b] hover:to-[#ff1e38] transition-all flex items-center justify-center gap-2 btn-glow-red"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>Register on Google Form</span>
-                        <ExternalLink className="w-3.5 h-3.5 ml-1 opacity-80" />
-                      </button>
-                      <p className="text-[10px] text-center text-gray-400 mt-1.5">
-                        Tap anywhere on card to open form
-                      </p>
-                    </div>
-                  </div>
+                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#ff1e38] text-white shadow-md">
+                    {current.game}
+                  </span>
                 </div>
-              ))}
+
+                <span className="px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-[10px] font-mono font-bold text-gray-300">
+                  {String(currentIndex + 1).padStart(2, "0")} / {String(tournaments.length).padStart(2, "0")}
+                </span>
+              </div>
+
+              {/* Event Details Content (Anchored over the rich black gradient at the bottom) */}
+              <div className="relative z-10 p-5 sm:p-8 flex flex-col gap-3.5 max-w-3xl">
+                {/* Meta Badges Strip */}
+                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/60 border border-white/15 text-gray-200">
+                    <Calendar className="w-3.5 h-3.5 text-[#ff1e38]" />
+                    <span>{current.date}</span>
+                  </div>
+
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/60 border border-amber-500/30 text-amber-300 font-bold">
+                    <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{current.prizePool}</span>
+                  </div>
+
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/60 border border-white/15 text-gray-300">
+                    <Users className="w-3.5 h-3.5 text-[#ff1e38]" />
+                    <span>{current.format}</span>
+                  </div>
+
+                  {current.platform && (
+                    <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-black/60 border border-white/15 text-gray-400">
+                      <Monitor className="w-3 h-3" />
+                      <span>{current.platform}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Tournament Main Title */}
+                <h3 className="text-2xl sm:text-4xl md:text-5xl font-black text-white uppercase tracking-tight leading-tight drop-shadow-md">
+                  {current.title}
+                </h3>
+
+                {/* Description */}
+                <p className="text-xs sm:text-sm text-gray-300 leading-relaxed max-w-2xl line-clamp-2">
+                  {current.description}
+                </p>
+
+                {/* Registration Action */}
+                <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <button
+                    onClick={(e) => handleRegister(current.formUrl, e)}
+                    className="min-h-[48px] px-6 py-3 rounded-xl font-bold uppercase tracking-wider text-xs sm:text-sm text-white bg-gradient-to-r from-[#ff1e38] to-[#d90429] hover:from-[#ff334b] hover:to-[#ff1e38] transition-all flex items-center justify-center gap-2 btn-glow-red shadow-lg active:scale-98"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>Register on Google Form</span>
+                    <ExternalLink className="w-4 h-4 ml-1 opacity-90" />
+                  </button>
+
+                  <span className="text-[11px] text-gray-400 text-center sm:text-left font-medium">
+                    Tap to open official registration form ↗
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {/* Mobile Dot Indicators */}
-            <div className="flex sm:hidden items-center justify-center gap-1.5 mt-4">
-              {filteredTournaments.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => scrollToCard(idx)}
-                  className={`h-1.5 rounded-full transition-all ${
-                    activeIndex === idx ? "w-6 bg-[#ff1e38]" : "w-1.5 bg-white/20"
-                  }`}
-                  aria-label={`Go to slide ${idx + 1}`}
-                />
-              ))}
+            {/* Carousel Thumbnails & Progress Bar (Desktop & Mobile) */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+              {/* Mobile Slide Indicator Dots */}
+              <div className="flex sm:hidden items-center justify-center gap-2 w-full py-1">
+                {tournaments.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentIndex(idx)}
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      currentIndex === idx ? "w-8 bg-[#ff1e38]" : "w-2 bg-white/20"
+                    }`}
+                    aria-label={`Jump to slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+
+              {/* Desktop Interactive Thumbnail Strip */}
+              <div className="hidden sm:grid grid-cols-3 gap-3 w-full">
+                {tournaments.map((tourney, idx) => {
+                  const isActive = currentIndex === idx;
+                  return (
+                    <button
+                      key={tourney.id}
+                      onClick={() => setCurrentIndex(idx)}
+                      className={`relative p-3 rounded-2xl text-left transition-all duration-300 flex items-center gap-3 border ${
+                        isActive
+                          ? "bg-[#141622] border-[#ff1e38] shadow-[0_0_20px_rgba(255,30,56,0.25)]"
+                          : "bg-white/[0.03] border-white/10 hover:bg-white/[0.06] hover:border-white/20 opacity-70 hover:opacity-100"
+                      }`}
+                    >
+                      <div className="relative w-14 h-12 rounded-xl overflow-hidden bg-black shrink-0">
+                        <Image
+                          src={tourney.posterUrl}
+                          alt={tourney.title}
+                          fill
+                          sizes="60px"
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#ff1e38] block truncate">
+                          {tourney.game}
+                        </span>
+                        <h4 className="text-xs font-black text-white truncate">
+                          {tourney.title}
+                        </h4>
+                        <span className="text-[10px] text-gray-400 block truncate">
+                          {tourney.date}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
