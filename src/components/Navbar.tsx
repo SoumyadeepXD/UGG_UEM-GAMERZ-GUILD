@@ -42,9 +42,6 @@ export default function Navbar() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-7 text-xs font-bold uppercase tracking-wider text-gray-300">
-          <a href="#home" className="hover:text-white transition-colors py-1">
-            Home
-          </a>
           <a href="#tournaments" className="hover:text-white transition-colors py-1">
             Tournaments
           </a>
@@ -103,14 +100,6 @@ export default function Navbar() {
       {mobileMenuOpen && (
         <div className="md:hidden bg-[#060709]/98 backdrop-blur-2xl border-b border-white/[0.1] px-5 py-5 space-y-4 animate-in slide-in-from-top-2 duration-200">
           <div className="flex flex-col space-y-1 text-sm font-bold text-gray-200">
-            <a
-              href="#home"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-white/[0.05] transition-colors"
-            >
-              <span>Home Arena</span>
-              <ChevronRight className="w-4 h-4 text-gray-500" />
-            </a>
             <a
               href="#tournaments"
               onClick={() => setMobileMenuOpen(false)}

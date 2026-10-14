@@ -1,4 +1,4 @@
-import { Tournament, HeroSpotlight } from "@/types/tournament";
+import { Tournament } from "@/types/tournament";
 import { initialTournaments } from "@/data/initialTournaments";
 import { siteConfig } from "@/config/site";
 
@@ -109,52 +109,5 @@ export async function getTournaments(): Promise<Tournament[]> {
 export function saveTournamentsLocally(tournaments: Tournament[]): void {
   if (typeof window !== "undefined") {
     localStorage.setItem(siteConfig.admin.storageKey, JSON.stringify(tournaments));
-  }
-}
-
-/**
- * Default fallback spotlight event shown in the Hero section
- */
-export const defaultSpotlight: HeroSpotlight = {
-  id: "ugg-val-2026",
-  badge: "Registration Live",
-  title: "Valorant: Clash of Radiants",
-  prize: "₹10,000",
-  subtitle: "5v5 Inter-College",
-  formUrl: "https://docs.google.com/forms/d/e/1FAIpQLSc_dummy_valorant_form/viewform",
-  isActive: true,
-};
-
-/**
- * Gets the current Hero spotlight tournament configuration
- */
-export function getHeroSpotlight(): HeroSpotlight {
-  if (typeof window === "undefined") {
-    return defaultSpotlight;
-  }
-
-  try {
-    const raw = localStorage.getItem(siteConfig.admin.spotlightKey);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed.title === "string") {
-        return parsed;
-      }
-    }
-  } catch (e) {
-    console.warn("Failed to parse hero spotlight:", e);
-  }
-
-  return defaultSpotlight;
-}
-
-/**
- * Saves the Hero spotlight tournament configuration to LocalStorage
- * and triggers a reactive update event
- */
-export function saveHeroSpotlight(spotlight: HeroSpotlight): void {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(siteConfig.admin.spotlightKey, JSON.stringify(spotlight));
-    window.dispatchEvent(new Event("ugg_spotlight_updated"));
   }
 }

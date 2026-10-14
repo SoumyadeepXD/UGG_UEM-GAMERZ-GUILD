@@ -4,15 +4,8 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
-import { Tournament, TournamentStatus, HeroSpotlight } from "@/types/tournament";
-import {
-  getTournaments,
-  saveTournamentsLocally,
-  parseGoogleSheetCsv,
-  getHeroSpotlight,
-  saveHeroSpotlight,
-  defaultSpotlight,
-} from "@/lib/events";
+import { Tournament, TournamentStatus } from "@/types/tournament";
+import { getTournaments, saveTournamentsLocally, parseGoogleSheetCsv } from "@/lib/events";
 import { initialTournaments } from "@/data/initialTournaments";
 import { cyberSound } from "@/lib/cyberSound";
 import {
@@ -36,9 +29,6 @@ import {
   Gamepad2,
   Clock,
   Users,
-  Flame,
-  ArrowRight,
-  Radio,
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -48,7 +38,6 @@ export default function AdminPage() {
   const [showPin, setShowPin] = useState(false);
 
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [spotlight, setSpotlight] = useState<HeroSpotlight>(defaultSpotlight);
   const [sheetUrl, setSheetUrl] = useState("");
   const [sheetStatus, setSheetStatus] = useState<string | null>(null);
   const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
@@ -75,41 +64,15 @@ export default function AdminPage() {
       setIsAuthenticated(true);
     }
 
-    // Load current events and hero spotlight
+    // Load current events
     const loadEvents = async () => {
       const data = await getTournaments();
       setTournaments(data);
-      setSpotlight(getHeroSpotlight());
       const savedSheet = localStorage.getItem(siteConfig.admin.sheetUrlKey) || "";
       setSheetUrl(savedSheet);
     };
     loadEvents();
   }, []);
-
-  const handleSaveSpotlight = (e: React.FormEvent) => {
-    e.preventDefault();
-    cyberSound.playLaunch();
-    saveHeroSpotlight(spotlight);
-    setSaveSuccessMessage("Hero Spotlight updated & live on homepage!");
-    setTimeout(() => setSaveSuccessMessage(null), 3000);
-  };
-
-  const handleSetTournamentAsSpotlight = (t: Tournament) => {
-    cyberSound.playLaunch();
-    const updated: HeroSpotlight = {
-      id: t.id,
-      badge: t.status === "active" ? "Registration Live" : "Upcoming Tournament",
-      title: t.title,
-      prize: t.prizePool,
-      subtitle: `${t.format} • ${t.game}`,
-      formUrl: t.formUrl,
-      isActive: true,
-    };
-    setSpotlight(updated);
-    saveHeroSpotlight(updated);
-    setSaveSuccessMessage(`"${t.title}" is now set as the Hero Spotlight!`);
-    setTimeout(() => setSaveSuccessMessage(null), 3500);
-  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -364,200 +327,6 @@ export default function AdminPage() {
             <span>{saveSuccessMessage}</span>
           </div>
         )}
-
-        {/* Section 0: Hero Spotlight Card Manager */}
-        <section className="bg-[#10121b] border border-[#ff1e38]/30 rounded-3xl p-6 sm:p-8 shadow-[0_0_30px_rgba(255,30,56,0.1)]">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#ff1e38]/20 text-[#ff1e38] flex items-center justify-center shadow-[0_0_15px_rgba(255,30,56,0.4)]">
-                <Flame className="w-5 h-5 animate-pulse" />
-              </div>
-              <div>
-                <h2 className="text-lg font-black uppercase tracking-wide text-white flex items-center gap-2">
-                  <span>Hero Spotlight Event</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-extrabold uppercase">
-                    Homepage Live
-                  </span>
-                </h2>
-                <p className="text-xs text-gray-400">
-                  Control the featured tournament banner and Google Form registration shortcut on the main page.
-                </p>
-              </div>
-            </div>
-
-            {/* Quick Select from Tournaments dropdown */}
-            {tournaments.length > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider shrink-0">
-                  Quick Pick:
-                </span>
-                <select
-                  onChange={(e) => {
-                    const sel = tournaments.find((t) => t.id === e.target.value);
-                    if (sel) handleSetTournamentAsSpotlight(sel);
-                  }}
-                  value={tournaments.find((t) => t.id === spotlight.id || t.title === spotlight.title)?.id || ""}
-                  className="bg-black/60 border border-gray-700 hover:border-[#ff1e38] focus:border-[#ff1e38] text-white text-xs rounded-xl px-3 py-2 outline-none"
-                >
-                  <option value="" disabled>-- Select a Tournament --</option>
-                  {tournaments.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.title} ({t.game})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Edit Form */}
-            <form onSubmit={handleSaveSpotlight} className="lg:col-span-7 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[11px] uppercase font-bold text-gray-400 block mb-1">
-                    Badge / Tagline *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Registration Live, Slots Filling Fast"
-                    value={spotlight.badge}
-                    onChange={(e) => setSpotlight({ ...spotlight, badge: e.target.value })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] uppercase font-bold text-gray-400 block mb-1">
-                    Tournament Title *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Valorant: Clash of Radiants"
-                    value={spotlight.title}
-                    onChange={(e) => setSpotlight({ ...spotlight, title: e.target.value })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[11px] uppercase font-bold text-gray-400 block mb-1">
-                    Prize Pool *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. ₹10,000, ₹25,000 + Trophies"
-                    value={spotlight.prize}
-                    onChange={(e) => setSpotlight({ ...spotlight, prize: e.target.value })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] uppercase font-bold text-gray-400 block mb-1">
-                    Subtitle / Format & Eligibility
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 5v5 Inter-College, Squad TPP"
-                    value={spotlight.subtitle}
-                    onChange={(e) => setSpotlight({ ...spotlight, subtitle: e.target.value })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[11px] uppercase font-bold text-gray-400 block mb-1">
-                  Google Form Registration Link *
-                </label>
-                <input
-                  type="url"
-                  required
-                  placeholder="https://docs.google.com/forms/d/e/.../viewform"
-                  value={spotlight.formUrl}
-                  onChange={(e) => setSpotlight({ ...spotlight, formUrl: e.target.value })}
-                  className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-between pt-2">
-                <label className="flex items-center gap-2 text-xs font-semibold text-gray-300 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={spotlight.isActive}
-                    onChange={(e) => setSpotlight({ ...spotlight, isActive: e.target.checked })}
-                    className="rounded accent-[#ff1e38] w-4 h-4 cursor-pointer"
-                  />
-                  <span>Show Spotlight Card on Homepage</span>
-                </label>
-
-                <button
-                  type="submit"
-                  className="py-2.5 px-6 rounded-xl font-bold uppercase tracking-wider text-xs text-white bg-gradient-to-r from-[#ff1e38] to-[#b80d22] hover:from-[#ff334b] hover:to-[#ff1e38] transition-all duration-300 shadow-[0_0_20px_rgba(255,30,56,0.4)] flex items-center gap-2"
-                >
-                  <Sparkles className="w-4 h-4 text-amber-300" />
-                  <span>Save Hero Spotlight</span>
-                </button>
-              </div>
-            </form>
-
-            {/* Live Replica Preview */}
-            <div className="lg:col-span-5 flex flex-col justify-center">
-              <span className="text-[11px] uppercase font-bold text-gray-400 tracking-wider mb-2 flex items-center gap-1.5">
-                <Radio className="w-3.5 h-3.5 text-[#ff1e38] animate-pulse" />
-                <span>Live Hero Card Replica</span>
-              </span>
-
-              {spotlight.isActive ? (
-                <div className="w-full p-4 rounded-2xl bg-gradient-to-r from-[#171a24] to-[#12141c] border border-[#ff1e38]/50 shadow-[0_0_25px_rgba(255,30,56,0.2)] text-left flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-[#ff1e38]/15 border border-[#ff1e38]/30 flex items-center justify-center text-[#ff1e38] shrink-0">
-                      <Flame className="w-5 h-5 animate-pulse" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-[#ff1e38]">
-                          {spotlight.badge || "Registration Live"}
-                        </span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                      </div>
-                      <h4 className="text-xs sm:text-sm font-black text-white truncate">
-                        {spotlight.title || "Untitled Tournament"}
-                      </h4>
-                      <p className="text-[11px] text-gray-400 truncate">
-                        {spotlight.prize && (
-                          <>
-                            Prize: <strong className="text-amber-400">{spotlight.prize}</strong>
-                            {spotlight.subtitle ? " • " : ""}
-                          </>
-                        )}
-                        {spotlight.subtitle}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="px-3 py-1.5 rounded-lg bg-[#ff1e38] text-white text-xs font-bold shrink-0 flex items-center gap-1">
-                    <span>Register</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </div>
-                </div>
-              ) : (
-                <div className="p-6 rounded-2xl bg-black/40 border border-dashed border-gray-800 text-center text-xs text-gray-500">
-                  Spotlight banner is currently hidden. Check the box above to enable.
-                </div>
-              )}
-
-              <p className="text-[10px] text-gray-500 mt-2 text-center">
-                This exact banner renders under the emblem in the Hero section and links to your registration form.
-              </p>
-            </div>
-          </div>
-        </section>
 
         {/* Section 1: Add Event Form with Live Card Preview */}
         <section className="bg-[#10121b] border border-gray-800 rounded-3xl p-6 sm:p-8">
@@ -868,29 +637,7 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2.5 self-end sm:self-center flex-wrap">
-                    {/* Set Spotlight Button */}
-                    <button
-                      onClick={() => handleSetTournamentAsSpotlight(t)}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
-                        spotlight.id === t.id || spotlight.title === t.title
-                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/60 shadow-[0_0_12px_rgba(245,158,11,0.3)]"
-                          : "bg-gray-900 text-gray-400 hover:text-white border border-gray-800 hover:border-amber-500/40"
-                      }`}
-                      title={
-                        spotlight.id === t.id || spotlight.title === t.title
-                          ? "Currently set as Hero Spotlight"
-                          : "Promote to Hero Spotlight card"
-                      }
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                      <span className="text-[11px]">
-                        {spotlight.id === t.id || spotlight.title === t.title
-                          ? "Active Spotlight"
-                          : "Set Spotlight"}
-                      </span>
-                    </button>
-
+                  <div className="flex items-center gap-3 self-end sm:self-center">
                     {/* Status Pill Switcher */}
                     <select
                       value={t.status}
