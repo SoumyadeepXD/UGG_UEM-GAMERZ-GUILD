@@ -162,7 +162,7 @@ export default function AdminDashboard({
   };
 
   const handleDeleteTournament = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this tournament? This action is logged in audit records.")) {
+    if (!confirm("Are you sure you want to delete this tournament? This action cannot be undone.")) {
       return;
     }
 
@@ -663,7 +663,7 @@ export default function AdminDashboard({
                   Active Tournament Roster ({tournaments.length})
                 </h2>
                 <p className="text-xs text-gray-400">
-                  Update statuses or delete tournament records. Every action is audit logged.
+                  Update statuses or delete tournament records.
                 </p>
               </div>
             </div>

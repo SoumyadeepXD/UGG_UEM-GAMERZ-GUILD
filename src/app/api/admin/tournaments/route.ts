@@ -1,10 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { verifyAdminRequest } from "@/lib/auth/adminGuard";
+import { validateSameOrigin } from "@/lib/security/sameOrigin";
 import { tournamentSchema } from "@/lib/validations/tournament";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
 import { logAdminAction } from "@/lib/audit";
 import { createClient } from "@/lib/supabase/server";
+
+interface DbTournamentRow {
+  id: string;
+  title: string;
+  game: string;
+  poster_url?: string;
+  posterUrl?: string;
+  date: string;
+  time?: string;
+  prize_pool?: string;
+  prizePool?: string;
+  format?: string;
+  platform?: string;
+  entry_fee?: string;
+  entryFee?: string;
+  description?: string;
+  form_url?: string;
+  formUrl?: string;
+  status: "active" | "upcoming" | "completed";
+  registered_teams?: number;
+  max_teams?: number;
+}
 
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request.headers);
@@ -34,7 +57,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ tournaments: [] });
     }
 
-    const mapped = data.map((item) => ({
+    const mapped = data.map((item: DbTournamentRow) => ({
       id: item.id,
       title: item.title,
       game: item.game,
@@ -60,6 +83,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Call sameOrigin validation first
+  const originError = validateSameOrigin(request, { requireJson: true });
+  if (originError) {
+    return originError;
+  }
+
   const ip = getClientIp(request.headers);
   const limiter = await rateLimit(`admin-write-${ip}`, { max: 20, windowMs: 60000 });
   if (!limiter.success) {
@@ -82,7 +111,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+    }
 
     // Validate input with Zod
     const parseResult = tournamentSchema.safeParse(body);
@@ -97,7 +131,7 @@ export async function POST(request: NextRequest) {
     }
 
     const validatedData = parseResult.data;
-    const tournamentId = validatedData.id || `ugg-${Date.now()}`;
+    const tournamentId = validatedData.id || `ugg-${crypto.randomUUID()}`;
 
     const newTournament = {
       id: tournamentId,
@@ -133,7 +167,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Write an audit log row
-    await logAdminAction({
+    const auditLogged = await logAdminAction({
       actorId: auth.user.id,
       actorEmail: auth.user.email || "admin@ugg.gg",
       action: "CREATE_TOURNAMENT",
@@ -147,6 +181,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    if (!auditLogged) {
+      console.error(`[AUDIT_FAILURE] Failed to record audit log for CREATE_TOURNAMENT ${tournamentId}`);
+    }
+
     // Revalidate paths for on-demand ISR
     revalidatePath("/");
     revalidatePath("/admin");
@@ -154,6 +192,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
+        auditLogged,
         tournament: data || {
           ...validatedData,
           id: tournamentId,

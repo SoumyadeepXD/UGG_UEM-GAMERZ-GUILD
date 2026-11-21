@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -28,6 +28,45 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Detect existing session on page load (e.g. redirected here because AAL2 is needed)
+  useEffect(() => {
+    async function checkExistingSession() {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (user && user.app_metadata?.role === "admin") {
+          const { data: aal, error } =
+            await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+          if (!error && aal) {
+            if (aal.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+              setRequiresMfa(true);
+            } else if (aal.currentLevel === "aal2" || aal.nextLevel === "aal1") {
+              router.push("/admin");
+            }
+          }
+        }
+      } catch {
+        // Ignore session check error on mount
+      }
+    }
+    checkExistingSession();
+  }, [router]);
+
+  const handleCancelMfa = async () => {
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      setRequiresMfa(false);
+      setMfaCode("");
+      setErrorMessage(null);
+    } catch {
+      setRequiresMfa(false);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -52,7 +91,6 @@ export default function AdminLoginPage() {
         }
         cyberSound.playLaunch();
         router.push("/admin");
-        router.refresh();
         return;
       }
 
@@ -78,7 +116,6 @@ export default function AdminLoginPage() {
 
       cyberSound.playLaunch();
       router.push("/admin");
-      router.refresh();
     } catch (err: unknown) {
       cyberSound.playClick();
       const message = err instanceof Error ? err.message : "Authentication failed";
@@ -223,6 +260,16 @@ export default function AdminLoginPage() {
               </>
             )}
           </button>
+
+          {requiresMfa && (
+            <button
+              type="button"
+              onClick={handleCancelMfa}
+              className="w-full py-2.5 rounded-xl font-semibold uppercase tracking-wider text-xs text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              Cancel / Switch Account
+            </button>
+          )}
 
           <div className="text-center pt-3">
             <Link

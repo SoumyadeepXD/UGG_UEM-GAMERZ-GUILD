@@ -45,7 +45,8 @@ export default function UnauthorizedPage() {
           <form action="/auth/logout" method="POST" className="w-full sm:w-auto">
             <button
               type="submit"
-              className="w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl font-bold uppercase tracking-wider text-xs text-red-300 bg-red-950/40 border border-red-900/60 hover:bg-red-900/50 transition-all flex items-center justify-center gap-2"
+              aria-label="Sign out of coordinator portal"
+              className="w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl font-bold uppercase tracking-wider text-xs text-red-300 bg-red-950/40 border border-red-900/60 hover:bg-red-900/50 transition-all flex items-center justify-center gap-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-500"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>Sign Out</span>

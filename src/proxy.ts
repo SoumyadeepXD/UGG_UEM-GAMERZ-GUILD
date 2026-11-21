@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { validateSameOrigin } from "./lib/security/sameOrigin";
 
 export default async function proxy(request: NextRequest) {
   let response = NextResponse.next({
@@ -55,7 +56,17 @@ export default async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Redirect unauthenticated requests away from protected admin routes
+  let aal = null;
+  if (user) {
+    const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    aal = aalData;
+  }
+
+  const isMfaPending = Boolean(
+    user && aal && aal.nextLevel === "aal2" && aal.currentLevel !== "aal2"
+  );
+
+  // 1. Redirect unauthenticated or unauthorized requests away from protected admin routes
   if (isAdminRoute && !isLoginPage && !isUnauthorizedPage) {
     if (!user) {
       const redirectUrl = new URL("/admin/login", request.url);
@@ -67,18 +78,44 @@ export default async function proxy(request: NextRequest) {
     if (userRole !== "admin") {
       return NextResponse.redirect(new URL("/admin/unauthorized", request.url));
     }
-  }
 
-  // If already logged in as admin, visiting login redirects to /admin
-  if (isLoginPage && user) {
-    const userRole = user.app_metadata?.role;
-    if (userRole === "admin") {
-      return NextResponse.redirect(new URL("/admin", request.url));
+    // Admin user has enrolled MFA but hasn't completed challenge (only at AAL1)
+    if (isMfaPending) {
+      const redirectUrl = new URL("/admin/login", request.url);
+      redirectUrl.searchParams.set("redirectTo", pathname);
+      return NextResponse.redirect(redirectUrl);
     }
   }
 
-  // API protection
+  // 2. Login page handling:
+  // Avoid redirect loop: only redirect login -> /admin when the session is fully authorized (AAL2 or no MFA required).
+  // When an admin is only at AAL1 and needs MFA, /admin/login remains accessible to complete MFA verification.
+  if (isLoginPage && user) {
+    const userRole = user.app_metadata?.role;
+    if (userRole === "admin") {
+      if (!isMfaPending) {
+        return NextResponse.redirect(new URL("/admin", request.url));
+      }
+      // If MFA is pending, do not redirect: let the login page display the MFA verification form
+    } else {
+      return NextResponse.redirect(new URL("/admin/unauthorized", request.url));
+    }
+  }
+
+  // 3. API protection
   if (isAdminApiRoute) {
+    // For administrative write requests, enforce same-origin verification
+    if (request.method !== "GET" && request.method !== "HEAD" && request.method !== "OPTIONS") {
+      const isUpload = pathname === "/api/admin/upload";
+      const isDelete = request.method === "DELETE";
+      const originError = validateSameOrigin(request, {
+        requireJson: !isUpload && !isDelete,
+      });
+      if (originError) {
+        return originError;
+      }
+    }
+
     if (!user) {
       return NextResponse.json(
         { error: "Unauthorized: Active admin session required" },
@@ -90,6 +127,13 @@ export default async function proxy(request: NextRequest) {
     if (userRole !== "admin") {
       return NextResponse.json(
         { error: "Forbidden: Admin role required" },
+        { status: 403 }
+      );
+    }
+
+    if (isMfaPending) {
+      return NextResponse.json(
+        { error: "Forbidden: MFA verification required (AAL2)" },
         { status: 403 }
       );
     }

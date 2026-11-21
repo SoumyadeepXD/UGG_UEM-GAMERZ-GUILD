@@ -20,6 +20,28 @@ export const metadata = {
   },
 };
 
+interface DbTournamentRow {
+  id: string;
+  title: string;
+  game: string;
+  poster_url?: string;
+  posterUrl?: string;
+  date: string;
+  time?: string;
+  prize_pool?: string;
+  prizePool?: string;
+  format?: string;
+  platform?: string;
+  entry_fee?: string;
+  entryFee?: string;
+  description?: string;
+  form_url?: string;
+  formUrl?: string;
+  status: "active" | "upcoming" | "completed";
+  registered_teams?: number;
+  max_teams?: number;
+}
+
 export default async function AdminPage() {
   // Ensure cookies are accessed to enforce dynamic request-time rendering
   await cookies();
@@ -55,7 +77,7 @@ export default async function AdminPage() {
       .order("created_at", { ascending: false });
 
     if (!dbError && dbTournaments && dbTournaments.length > 0) {
-      tournaments = dbTournaments.map((t) => ({
+      tournaments = dbTournaments.map((t: DbTournamentRow) => ({
         id: t.id,
         title: t.title,
         game: t.game,

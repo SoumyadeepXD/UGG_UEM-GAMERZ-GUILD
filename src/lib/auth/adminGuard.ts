@@ -8,54 +8,50 @@ export interface AdminAuthResult {
   errorResponse?: NextResponse;
 }
 
+function deny(status: number, error: string, user: User | null = null): AdminAuthResult {
+  return {
+    authorized: false,
+    user,
+    errorResponse: NextResponse.json({ error }, { status }),
+  };
+}
+
 /**
- * Validates whether the incoming request is authenticated and possesses admin role.
+ * Verified session + admin role + completed MFA challenge (aal2) when the
+ * account has MFA enrolled.
  */
 export async function verifyAdminRequest(): Promise<AdminAuthResult> {
   try {
     const supabase = await createClient();
+
+    // getUser() re-validates the token with Supabase Auth.
     const {
       data: { user },
       error,
     } = await supabase.auth.getUser();
 
     if (error || !user) {
-      return {
-        authorized: false,
-        user: null,
-        errorResponse: NextResponse.json(
-          { error: "Unauthorized: Active admin session required" },
-          { status: 401 }
-        ),
-      };
+      return deny(401, "Unauthorized: Active admin session required");
     }
 
-    // Sole authorization check: user must have role === "admin" in app_metadata
-    const userRole = user.app_metadata?.role;
-    if (userRole !== "admin") {
-      return {
-        authorized: false,
-        user,
-        errorResponse: NextResponse.json(
-          { error: "Forbidden: Admin clearance required" },
-          { status: 403 }
-        ),
-      };
+    if (user.app_metadata?.role !== "admin") {
+      return deny(403, "Forbidden: Admin clearance required", user);
     }
 
-    return {
-      authorized: true,
-      user,
-    };
+    const { data: aal, error: aalError } =
+      await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+    if (aalError || !aal) {
+      return deny(401, "Unauthorized: Could not verify session assurance level", user);
+    }
+
+    if (aal.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+      return deny(403, "Forbidden: MFA verification required", user);
+    }
+
+    return { authorized: true, user };
   } catch (err) {
     console.error("Error verifying admin request:", err);
-    return {
-      authorized: false,
-      user: null,
-      errorResponse: NextResponse.json(
-        { error: "Internal Auth Error" },
-        { status: 500 }
-      ),
-    };
+    return deny(500, "Internal Auth Error");
   }
 }

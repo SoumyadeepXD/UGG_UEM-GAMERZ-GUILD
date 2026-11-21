@@ -1,39 +1,46 @@
 import type { NextConfig } from "next";
 
-const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
-  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
-  : "";
+function getSupabaseHost(): string | null {
+  const raw = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!raw) return null;
+  try {
+    return new URL(raw).hostname;
+  } catch {
+    return null;
+  }
+}
+
+const supabaseHost = getSupabaseHost();
+
+const imgSrc = [
+  "'self'",
+  "data:",
+  "https://images.unsplash.com",
+  ...(supabaseHost ? [`https://${supabaseHost}`] : []),
+].join(" ");
+
+const connectSrc = ["'self'", ...(supabaseHost ? [`https://${supabaseHost}`] : [])].join(" ");
 
 const securityHeaders = [
-  {
-    key: "X-Content-Type-Options",
-    value: "nosniff",
-  },
-  {
-    key: "X-Frame-Options",
-    value: "DENY",
-  },
-  {
-    key: "Referrer-Policy",
-    value: "strict-origin-when-cross-origin",
-  },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",
     value: "camera=(), microphone=(), geolocation=(), browsing-topics=()",
   },
-  {
-    key: "Strict-Transport-Security",
-    value: "max-age=63072000; includeSubDomains; preload",
-  },
+  // No "preload": add it only after confirming every subdomain serves HTTPS.
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+  // Report-only: observes but does not block. Move to enforced + nonces later.
   {
     key: "Content-Security-Policy-Report-Only",
     value: [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
-      `img-src 'self' data: https://images.unsplash.com ${supabaseHost ? `https://${supabaseHost}` : ""}`.trim(),
+      `img-src ${imgSrc}`,
       "font-src 'self'",
-      `connect-src 'self' ${supabaseHost ? `https://${supabaseHost}` : ""}`.trim(),
+      `connect-src ${connectSrc}`,
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -45,11 +52,7 @@ const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-        pathname: "/**",
-      },
+      { protocol: "https" as const, hostname: "images.unsplash.com", pathname: "/**" },
       ...(supabaseHost
         ? [
             {
@@ -62,12 +65,7 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: securityHeaders,
-      },
-    ];
+    return [{ source: "/(.*)", headers: securityHeaders }];
   },
 };
 

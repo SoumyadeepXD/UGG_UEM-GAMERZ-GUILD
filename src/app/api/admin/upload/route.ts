@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { verifyAdminRequest } from "@/lib/auth/adminGuard";
+import { validateSameOrigin } from "@/lib/security/sameOrigin";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
 import { logAdminAction } from "@/lib/audit";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -9,6 +10,12 @@ import { detectImageMagicBytes } from "@/lib/validations/magicBytes";
 const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB hard limit (conforms to Vercel Serverless payload limits)
 
 export async function POST(request: NextRequest) {
+  // Call sameOrigin first
+  const originError = validateSameOrigin(request, { requireJson: false });
+  if (originError) {
+    return originError;
+  }
+
   const ip = getClientIp(request.headers);
   const limiter = await rateLimit(`admin-upload-${ip}`, { max: 20, windowMs: 60000 });
 
@@ -42,9 +49,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const formData = await request.formData();
-    const file = formData.get("file") as File | null;
+    const file = formData.get("file");
 
-    if (!file) {
+    if (!file || !(file instanceof File)) {
       return NextResponse.json(
         { error: "No image file provided in form data." },
         { status: 400 }
@@ -102,7 +109,7 @@ export async function POST(request: NextRequest) {
     } = adminSupabase.storage.from("posters").getPublicUrl(fileName);
 
     // 6. Record Immutable Audit Log
-    await logAdminAction({
+    const auditLogged = await logAdminAction({
       actorId: auth.user.id,
       actorEmail: auth.user.email || "admin@ugg.gg",
       action: "UPLOAD_POSTER",
@@ -117,6 +124,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    if (!auditLogged) {
+      console.error(`[AUDIT_FAILURE] Failed to record audit log for UPLOAD_POSTER ${fileName}`);
+    }
+
     // Revalidate admin and public paths
     revalidatePath("/admin");
     revalidatePath("/");
@@ -124,6 +135,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
+        auditLogged,
         url: publicUrl,
         fileName,
         size: file.size,

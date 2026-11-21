@@ -5,10 +5,7 @@ export type AuditAction =
   | "UPDATE_TOURNAMENT"
   | "DELETE_TOURNAMENT"
   | "UPDATE_STATUS"
-  | "UPLOAD_POSTER"
-  | "SYNC_GOOGLE_SHEET"
-  | "LOGIN_SUCCESS"
-  | "LOGIN_FAILED";
+  | "UPLOAD_POSTER";
 
 export interface AuditLogEntry {
   actorId: string;
@@ -22,8 +19,9 @@ export interface AuditLogEntry {
 
 /**
  * Persists an immutable audit log entry of an administrative write action.
+ * Returns true if the audit log row was successfully written to Supabase, false otherwise.
  */
-export async function logAdminAction(entry: AuditLogEntry): Promise<void> {
+export async function logAdminAction(entry: AuditLogEntry): Promise<boolean> {
   const timestamp = new Date().toISOString();
   const logPayload = {
     ...entry,
@@ -35,23 +33,30 @@ export async function logAdminAction(entry: AuditLogEntry): Promise<void> {
 
   try {
     const adminSupabase = createAdminClient();
-    if (adminSupabase) {
-      const { error } = await adminSupabase.from("admin_audit_logs").insert({
-        actor_id: entry.actorId,
-        actor_email: entry.actorEmail,
-        action: entry.action,
-        resource_id: entry.resourceId || null,
-        details: entry.details || {},
-        ip_address: entry.ipAddress || "127.0.0.1",
-        user_agent: entry.userAgent || "Unknown",
-        created_at: timestamp,
-      });
-
-      if (error) {
-        console.error("Failed to insert audit log entry to Supabase:", error.message);
-      }
+    if (!adminSupabase) {
+      console.error("[AUDIT_FAILURE] SUPABASE_SERVICE_ROLE_KEY missing or invalid. Cannot write audit log:", JSON.stringify(logPayload));
+      return false;
     }
+
+    const { error } = await adminSupabase.from("admin_audit_logs").insert({
+      actor_id: entry.actorId,
+      actor_email: entry.actorEmail,
+      action: entry.action,
+      resource_id: entry.resourceId || null,
+      details: entry.details || {},
+      ip_address: entry.ipAddress || "127.0.0.1",
+      user_agent: entry.userAgent || "Unknown",
+      created_at: timestamp,
+    });
+
+    if (error) {
+      console.error("[AUDIT_FAILURE] Audit log insert failed:", error.message, JSON.stringify(logPayload));
+      return false;
+    }
+
+    return true;
   } catch (err) {
-    console.error("Error writing audit log:", err);
+    console.error("[AUDIT_FAILURE] Error writing audit log:", err);
+    return false;
   }
 }

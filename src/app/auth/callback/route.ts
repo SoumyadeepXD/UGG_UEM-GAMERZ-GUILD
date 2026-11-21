@@ -4,20 +4,20 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") || "/admin";
 
   if (code) {
     try {
       const supabase = await createClient();
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (!error) {
-        return NextResponse.redirect(`${origin}${next}`);
+        // Redirect target is strictly a fixed internal path, never user-supplied
+        return NextResponse.redirect(`${origin}/admin`);
       }
     } catch (err) {
       console.error("Auth callback exchange error:", err);
     }
   }
 
-  // Return the user to an error page if verification failed
+  // Return the user to login with a fixed path if verification failed
   return NextResponse.redirect(`${origin}/admin/login?error=auth_callback_failed`);
 }
