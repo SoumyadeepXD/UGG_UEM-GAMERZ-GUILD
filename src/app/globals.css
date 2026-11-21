@@ -45,7 +45,8 @@ body {
   will-change: transform;
 }
 
-.animate-marquee:hover {
+.animate-marquee:hover,
+.animate-marquee:focus-within {
   animation-play-state: paused;
 }
 
@@ -111,4 +112,25 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #ff1e38;
+}
+
+/* Accessibility: Honor system-level prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .animate-marquee {
+    animation: none !important;
+    transform: none !important;
+  }
+  .animate-slide-timer {
+    animation: none !important;
+  }
 }

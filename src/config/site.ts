@@ -6,8 +6,10 @@ export const siteConfig = {
     "Home of competitive collegiate esports at UEM Kolkata. Compete in high-stakes tournaments, scrim with the best, and level up your skills.",
   university: "University of Engineering & Management, Kolkata",
   assets: {
-    logo: "/assets/logo.png",
-    heroBg: "/assets/hero-bg.png",
+    logo: "/assets/logo.webp",
+    logoPng: "/assets/logo.png",
+    heroBg: "/assets/hero-bg.webp",
+    heroBgPng: "/assets/hero-bg.png",
   },
   socials: {
     instagram: "https://www.instagram.com/p/DZeSdoSi5BU/",
@@ -18,7 +20,6 @@ export const siteConfig = {
     email: "gamerzguild@uem.edu.in",
   },
   admin: {
-    defaultPin: "ugg2026",
     storageKey: "ugg_tournaments_v1",
     sheetUrlKey: "ugg_sheet_csv_url",
   },

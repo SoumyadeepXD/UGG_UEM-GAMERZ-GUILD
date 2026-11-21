@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
 import { InstagramIcon, WhatsAppIcon, DiscordIcon } from "@/components/SocialIcons";
-import { Menu, X, Shield, ExternalLink, Gamepad2, ChevronRight } from "lucide-react";
+import { Menu, X, Shield, ChevronRight } from "lucide-react";
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

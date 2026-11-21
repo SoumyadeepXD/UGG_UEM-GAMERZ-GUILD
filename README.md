@@ -2,33 +2,28 @@
 
 The official website for **UGG (UEMK GAMERZ GUILD)**, the premier collegiate gaming and esports society of the **University of Engineering & Management, Kolkata**.
 
-🌐 **Live Website:** [https://soumyadeepxd.github.io/UGG_UEM-GAMERZ-GUILD/](https://soumyadeepxd.github.io/UGG_UEM-GAMERZ-GUILD/)
-
 ---
 
 ## ✨ Features
 
-- **🏆 Featured Showdowns Carousel:** Full-bleed cinematic tournament poster carousel with bottom vignette gradients, 5-second automatic sliding windows, top countdown timer line, and mobile touch swiping.
-- **⚡ 1-Tap Google Form Registration:** Immediate redirection to official Google Forms on tournament card or button click.
-- **📱 Mobile-First OLED Palette:** Optimized for smartphone traffic arriving from Instagram and WhatsApp with pure dark backgrounds (`#060709`) and neon crimson accents (`#ff1e38`).
+- **🏆 Featured Showdowns Carousel:** Full-bleed cinematic tournament poster carousel with bottom vignette gradients, auto-sliding window, live timer bar, keyboard navigation, and mobile touch swiping.
+- **⚡ Verified Registration Links:** Hardened, HTTPS-validated redirection to official tournament registration forms.
+- **📱 Mobile-First Cyberpunk Palette:** Optimized for smartphone traffic arriving from Instagram and WhatsApp with pure dark backgrounds (`#060709`) and neon crimson accents (`#ff1e38`).
 - **💬 Community Hub:** Quick access to the official UGG WhatsApp community channel, Discord server, Instagram, and YouTube.
 - **🛡️ Coordinator Admin Portal (`/admin`):**
-  - Passkey protected (Default: `ugg2026`).
-  - Add new tournaments with live poster card previews.
-  - Manage existing tournaments (Active, Upcoming, Completed).
-  - Optional live synchronization via Google Sheets CSV.
-  - Offline JSON data export and backup.
-- **🚀 Automated GitHub Pages Deployment:** Built as a static export using Next.js 16 and automated with GitHub Actions.
+  - Managed via server-side session authentication with Supabase (Phase 2).
+  - Production gate: Access is restricted in production until server-side authentication is deployed.
+- **🚀 High-Performance Vercel Edge Hosting:** Built with Next.js 16 App Router using On-Demand Incremental Static Regeneration (ISR) for sub-50ms p95 page loads and resilience under traffic spikes (200+ concurrent visitors).
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Framework:** [Next.js 16](https://nextjs.org/) (App Router, Static HTML Export)
-- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+- **Framework:** [Next.js 16](https://nextjs.org/) (App Router, On-Demand ISR)
+- **Styling:** [Tailwind CSS v4](https://tailwindcss.com/)
 - **Icons:** [Lucide React](https://lucide.dev/) + Custom SVG Brand Icons
-- **Animation:** Native hardware-accelerated CSS animations & IntersectionObserver
-- **Hosting:** GitHub Pages via GitHub Actions
+- **Animation:** Hardware-accelerated CSS animations, `prefers-reduced-motion` compliance, and IntersectionObserver
+- **Hosting:** Vercel Global Edge Network
 
 ---
 
@@ -40,26 +35,30 @@ The official website for **UGG (UEMK GAMERZ GUILD)**, the premier collegiate gam
    cd UGG_UEM-GAMERZ-GUILD
    ```
 
-2. Install dependencies:
+2. Copy the environment template:
+   ```bash
+   cp .env.example .env.local
+   ```
+
+3. Install dependencies:
    ```bash
    npm install
    ```
 
-3. Start development server:
+4. Start development server:
    ```bash
    npm run dev
    ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 🔐 Admin Coordinator Portal
+## 🔐 Security & Access Control
 
-To manage tournaments locally or on the live site:
-1. Navigate to `/admin` (e.g., `https://soumyadeepxd.github.io/UGG_UEM-GAMERZ-GUILD/admin/`).
-2. Enter the passkey: `ugg2026`.
-3. Add, edit status, or remove tournament listings. Changes persist locally and reflect immediately.
+- **Server-Side Session Gate:** Client-side hardcoded passkeys have been completely removed and burned.
+- **Phase 1 Production Protection:** The `/admin` portal returns `404 Not Found` in production until Phase 2 Supabase Auth (HttpOnly cookies + MFA) is integrated.
+- **URL Sanitization:** Tournament registration links are strictly validated for `https://` schemes before rendering as safe `rel="noopener noreferrer"` links to prevent stored XSS and open redirect vulnerabilities.
 
 ---
 

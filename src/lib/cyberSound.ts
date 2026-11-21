@@ -1,9 +1,12 @@
 "use client";
 
+interface WindowWithWebkitAudio extends Window {
+  webkitAudioContext?: typeof AudioContext;
+}
+
 class CyberSoundEngine {
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
-  private isInitialized: boolean = false;
 
   constructor() {
     if (typeof window !== "undefined") {
@@ -15,10 +18,10 @@ class CyberSoundEngine {
   private initCtx() {
     if (typeof window === "undefined") return;
     if (!this.ctx) {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const win = window as WindowWithWebkitAudio;
+      const AudioCtx = window.AudioContext || win.webkitAudioContext;
       if (AudioCtx) {
         this.ctx = new AudioCtx();
-        this.isInitialized = true;
       }
     }
     if (this.ctx && this.ctx.state === "suspended") {
