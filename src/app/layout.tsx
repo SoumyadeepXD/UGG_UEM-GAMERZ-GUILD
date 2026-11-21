@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import { siteConfig } from "@/config/site";
 
@@ -95,6 +96,7 @@ export default function RootLayout({
     <html lang="en" className="dark scroll-smooth">
       <body className="min-h-screen bg-[#060709] text-gray-100 antialiased selection:bg-[#ff1e38] selection:text-white font-sans">
         {children}
+        <Analytics />
       </body>
     </html>
   );

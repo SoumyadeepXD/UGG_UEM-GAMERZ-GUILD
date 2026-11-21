@@ -17,6 +17,7 @@ export async function PUT(
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   }
 
+  // (a) Verify session and admin email
   const auth = await verifyAdminRequest();
   if (!auth.authorized || !auth.user) {
     return auth.errorResponse!;
@@ -24,8 +25,9 @@ export async function PUT(
 
   try {
     const body = await request.json();
-    const parseResult = tournamentSchema.safeParse(body);
 
+    // (b) Validate input with Zod
+    const parseResult = tournamentSchema.safeParse(body);
     if (!parseResult.success) {
       return NextResponse.json(
         {
@@ -62,6 +64,7 @@ export async function PUT(
       console.warn("Supabase update warning:", error.message);
     }
 
+    // (c) Write audit log row
     await logAdminAction({
       actorId: auth.user.id,
       actorEmail: auth.user.email || "unknown@uem.edu.in",
@@ -75,7 +78,9 @@ export async function PUT(
       },
     });
 
+    // (d) Call revalidatePath
     revalidatePath("/");
+    revalidatePath("/admin");
 
     return NextResponse.json({ success: true, id });
   } catch (err: unknown) {
@@ -95,6 +100,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   }
 
+  // (a) Verify session and admin email
   const auth = await verifyAdminRequest();
   if (!auth.authorized || !auth.user) {
     return auth.errorResponse!;
@@ -102,11 +108,15 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const parseResult = updateStatusSchema.safeParse(body);
 
+    // (b) Validate input with Zod
+    const parseResult = updateStatusSchema.safeParse(body);
     if (!parseResult.success) {
       return NextResponse.json(
-        { error: "Invalid status value" },
+        {
+          error: "Invalid status value",
+          details: parseResult.error.flatten().fieldErrors,
+        },
         { status: 400 }
       );
     }
@@ -126,6 +136,7 @@ export async function PATCH(
       console.warn("Supabase status update warning:", error.message);
     }
 
+    // (c) Write audit log row
     await logAdminAction({
       actorId: auth.user.id,
       actorEmail: auth.user.email || "unknown@uem.edu.in",
@@ -136,7 +147,9 @@ export async function PATCH(
       details: { newStatus: status },
     });
 
+    // (d) Call revalidatePath
     revalidatePath("/");
+    revalidatePath("/admin");
 
     return NextResponse.json({ success: true, id, status });
   } catch (err: unknown) {
@@ -156,6 +169,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   }
 
+  // (a) Verify session and admin email
   const auth = await verifyAdminRequest();
   if (!auth.authorized || !auth.user) {
     return auth.errorResponse!;
@@ -169,6 +183,7 @@ export async function DELETE(
       console.warn("Supabase delete warning:", error.message);
     }
 
+    // (c) Write audit log row
     await logAdminAction({
       actorId: auth.user.id,
       actorEmail: auth.user.email || "unknown@uem.edu.in",
@@ -178,7 +193,9 @@ export async function DELETE(
       userAgent: request.headers.get("user-agent") || undefined,
     });
 
+    // (d) Call revalidatePath
     revalidatePath("/");
+    revalidatePath("/admin");
 
     return NextResponse.json({ success: true, deletedId: id });
   } catch (err: unknown) {

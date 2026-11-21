@@ -27,11 +27,9 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false });
 
     if (error || !data || data.length === 0) {
-      // Return defaults if database is not yet populated
       return NextResponse.json({ tournaments: initialTournaments });
     }
 
-    // Map column names if snake_case in Postgres
     const mapped = data.map((item) => ({
       id: item.id,
       title: item.title,
@@ -73,6 +71,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // (a) Verify session and admin email
   const auth = await verifyAdminRequest();
   if (!auth.authorized || !auth.user) {
     return auth.errorResponse!;
@@ -80,8 +79,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const parseResult = tournamentSchema.safeParse(body);
 
+    // (b) Validate input with Zod
+    const parseResult = tournamentSchema.safeParse(body);
     if (!parseResult.success) {
       return NextResponse.json(
         {
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
       console.warn("Supabase insert warning:", error.message);
     }
 
-    // Record Immutable Audit Log
+    // (c) Write an audit log row
     await logAdminAction({
       actorId: auth.user.id,
       actorEmail: auth.user.email || "unknown@uem.edu.in",
@@ -139,8 +139,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Trigger Instant Edge Invalidation for Public Visitors
+    // (d) Call revalidatePath for public site and admin
     revalidatePath("/");
+    revalidatePath("/admin");
 
     return NextResponse.json(
       {

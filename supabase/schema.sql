@@ -58,17 +58,19 @@ create trigger set_tournaments_updated_at
   before update on public.tournaments
   for each row execute function public.handle_updated_at();
 
--- 4. Enable Row Level Security (RLS)
+-- 4. Enable Row Level Security (RLS) on all tables
 alter table public.tournaments enable row level security;
 alter table public.admin_audit_logs enable row level security;
 
 -- 5. RLS Policies for Tournaments:
--- Public can read all published tournaments
+-- Public can ONLY SELECT published tournaments (active, upcoming, completed)
 drop policy if exists "Public visitors can view published tournaments" on public.tournaments;
 create policy "Public visitors can view published tournaments"
   on public.tournaments
   for select
-  using (true);
+  using (status in ('active', 'upcoming', 'completed'));
+
+-- Zero public write: public insert/update/delete are blocked by default RLS deny.
 
 -- Admin write policy: Only authenticated coordinators can insert, update, or delete
 drop policy if exists "Coordinators can manage tournaments" on public.tournaments;
@@ -81,7 +83,7 @@ create policy "Coordinators can manage tournaments"
     or exists (
       select 1 from auth.users
       where auth.users.id = auth.uid()
-      and auth.users.email in ('gamerzguild@uem.edu.in')
+      and auth.users.email in ('gamerzguild@uem.edu.in', 'coordinator@uem.edu.in')
     )
   )
   with check (
@@ -89,12 +91,13 @@ create policy "Coordinators can manage tournaments"
     or exists (
       select 1 from auth.users
       where auth.users.id = auth.uid()
-      and auth.users.email in ('gamerzguild@uem.edu.in')
+      and auth.users.email in ('gamerzguild@uem.edu.in', 'coordinator@uem.edu.in')
     )
   );
 
 -- 6. RLS Policies for Admin Audit Logs:
--- Coordinators can view audit logs
+-- Public CANNOT view audit logs.
+-- Only authenticated coordinators can view audit logs:
 drop policy if exists "Coordinators can view audit logs" on public.admin_audit_logs;
 create policy "Coordinators can view audit logs"
   on public.admin_audit_logs
@@ -105,11 +108,11 @@ create policy "Coordinators can view audit logs"
     or exists (
       select 1 from auth.users
       where auth.users.id = auth.uid()
-      and auth.users.email in ('gamerzguild@uem.edu.in')
+      and auth.users.email in ('gamerzguild@uem.edu.in', 'coordinator@uem.edu.in')
     )
   );
 
--- Service role can insert audit logs (enforced via server)
+-- Service role or authenticated coordinator can insert audit logs
 drop policy if exists "Service role can insert audit logs" on public.admin_audit_logs;
 create policy "Service role can insert audit logs"
   on public.admin_audit_logs
@@ -175,7 +178,7 @@ insert into public.tournaments (
 on conflict (id) do nothing;
 
 -- 8. Object Storage Setup for Tournament Posters
--- Creates the public 'posters' bucket with a 5MB size limit and image-only MIME restriction
+-- Creates public 'posters' bucket with 5MB size limit and image-only MIME restriction
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
   'posters',
@@ -207,7 +210,7 @@ create policy "Coordinators can upload tournament posters"
       or exists (
         select 1 from auth.users
         where auth.users.id = auth.uid()
-        and auth.users.email in ('gamerzguild@uem.edu.in')
+        and auth.users.email in ('gamerzguild@uem.edu.in', 'coordinator@uem.edu.in')
       )
     )
   );
@@ -224,7 +227,17 @@ create policy "Coordinators can manage tournament posters"
       or exists (
         select 1 from auth.users
         where auth.users.id = auth.uid()
-        and auth.users.email in ('gamerzguild@uem.edu.in')
+        and auth.users.email in ('gamerzguild@uem.edu.in', 'coordinator@uem.edu.in')
       )
     )
   );
+
+-- ==============================================================================
+-- MANDATORY ADMIN AUTH CONFIGURATION IN SUPABASE DASHBOARD:
+-- 1. Go to Authentication -> Providers -> Email
+-- 2. Turn OFF "Enable Signups" (Disables public sign-ups so arbitrary users cannot register)
+-- 3. Turn ON "Confirm email"
+-- 4. To invite an administrator, go to Authentication -> Users -> "Invite User"
+--    and invite the coordinator email (e.g. gamerzguild@uem.edu.in).
+-- 5. In SQL Editor or Table Editor, assign app_metadata: {"role": "admin"} to that user.
+-- ==============================================================================

@@ -23,67 +23,6 @@ function getPublicSupabase() {
 }
 
 /**
- * Parses raw CSV text (e.g. from Google Sheets) into Tournament objects.
- * Used for admin batch imports.
- */
-export function parseGoogleSheetCsv(csvText: string): Tournament[] {
-  const lines = csvText.split(/\r?\n/).filter((line) => line.trim().length > 0);
-  if (lines.length < 2) return [];
-
-  // Parse header
-  const headers = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/['"]+/g, ""));
-  const tournaments: Tournament[] = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const row = lines[i];
-    const values: string[] = [];
-    let inQuotes = false;
-    let currentValue = "";
-
-    for (let charIndex = 0; charIndex < row.length; charIndex++) {
-      const char = row[charIndex];
-      if (char === '"' || char === "'") {
-        inQuotes = !inQuotes;
-      } else if (char === "," && !inQuotes) {
-        values.push(currentValue.trim());
-        currentValue = "";
-      } else {
-        currentValue += char;
-      }
-    }
-    values.push(currentValue.trim());
-
-    if (values.length >= 4) {
-      const getVal = (colName: string, fallback = "") => {
-        const index = headers.findIndex((h) => h.includes(colName));
-        return index !== -1 && values[index] ? values[index].replace(/^["']|["']$/g, "") : fallback;
-      };
-
-      const title = getVal("title") || getVal("name");
-      if (!title) continue;
-
-      tournaments.push({
-        id: getVal("id") || `ugg-event-${i}-${Date.now()}`,
-        title,
-        game: getVal("game", "Esports"),
-        posterUrl: getVal("poster") || getVal("image", "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1200&auto=format&fit=crop"),
-        date: getVal("date", "TBA"),
-        time: getVal("time", "6:00 PM IST"),
-        prizePool: getVal("prize", "Trophies & Glory"),
-        format: getVal("format", "Open Bracket"),
-        description: getVal("description", "Collegiate tournament organized by UEMK Gamerz Guild."),
-        formUrl: getVal("form") || getVal("link") || getVal("url", "https://docs.google.com/forms"),
-        status: (getVal("status", "active").toLowerCase() as Tournament["status"]) || "active",
-        platform: getVal("platform", "Cross-Platform"),
-        entryFee: getVal("entry", "Free"),
-      });
-    }
-  }
-
-  return tournaments.length > 0 ? tournaments : initialTournaments;
-}
-
-/**
  * Server-side static query to fetch published tournaments for public pages.
  * Resilient against database outages: falls back to static seed data if Supabase is offline.
  */

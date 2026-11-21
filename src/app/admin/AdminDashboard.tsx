@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Tournament, TournamentStatus } from "@/types/tournament";
-import { parseGoogleSheetCsv } from "@/lib/events";
+import { isAllowlistedPosterUrl } from "@/lib/validations/urlAllowlist";
 import { cyberSound } from "@/lib/cyberSound";
 import {
   Shield,
@@ -13,7 +13,6 @@ import {
   ExternalLink,
   Calendar,
   CheckCircle,
-  FileSpreadsheet,
   Download,
   Sparkles,
   ArrowLeft,
@@ -23,6 +22,7 @@ import {
   AlertCircle,
   RefreshCw,
   Upload,
+  ImageOff,
 } from "lucide-react";
 
 interface AdminDashboardProps {
@@ -35,13 +35,12 @@ export default function AdminDashboard({
   initialTournaments,
 }: AdminDashboardProps) {
   const [tournaments, setTournaments] = useState<Tournament[]>(initialTournaments);
-  const [sheetUrl, setSheetUrl] = useState("");
-  const [sheetStatus, setSheetStatus] = useState<string | null>(null);
   const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingPoster, setIsUploadingPoster] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);
 
   // New Tournament Form State
   const [formData, setFormData] = useState<Omit<Tournament, "id">>({
@@ -59,13 +58,16 @@ export default function AdminDashboard({
     status: "active",
   });
 
+  const previewImageError = failedPreviewUrl === formData.posterUrl;
+  const isPosterAllowlisted = isAllowlistedPosterUrl(formData.posterUrl);
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadError(null);
 
-    // Client-side quick check
+    // Client-side quick check (5MB limit)
     if (file.size > 5 * 1024 * 1024) {
       setUploadError("File exceeds 5MB limit. Please upload an image under 5MB.");
       return;
@@ -73,7 +75,7 @@ export default function AdminDashboard({
 
     const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/avif"];
     if (!allowedTypes.includes(file.type)) {
-      setUploadError("Invalid image format. Supported formats: JPEG, PNG, WebP, AVIF.");
+      setUploadError("Invalid format. Permitted formats: JPEG, PNG, WebP, AVIF.");
       return;
     }
 
@@ -133,7 +135,7 @@ export default function AdminDashboard({
       const createdTournament: Tournament = data.tournament;
       setTournaments([createdTournament, ...tournaments]);
 
-      // Reset form
+      // Reset form to defaults
       setFormData({
         title: "",
         game: "Valorant",
@@ -149,7 +151,7 @@ export default function AdminDashboard({
         status: "active",
       });
 
-      setSaveSuccessMessage("Tournament published & edge cache invalidated!");
+      setSaveSuccessMessage("Tournament saved to database and edge cache purged!");
       setTimeout(() => setSaveSuccessMessage(null), 4000);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Creation failed";
@@ -160,7 +162,7 @@ export default function AdminDashboard({
   };
 
   const handleDeleteTournament = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this tournament? This action is logged.")) {
+    if (!confirm("Are you sure you want to delete this tournament? This action is logged in audit records.")) {
       return;
     }
 
@@ -176,7 +178,7 @@ export default function AdminDashboard({
 
       cyberSound.playClick();
       setTournaments(tournaments.filter((t) => t.id !== id));
-      setSaveSuccessMessage("Tournament deleted from database & edge purged.");
+      setSaveSuccessMessage("Tournament deleted from database and edge cache purged!");
       setTimeout(() => setSaveSuccessMessage(null), 3000);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Deletion failed";
@@ -201,33 +203,11 @@ export default function AdminDashboard({
       setTournaments(
         tournaments.map((t) => (t.id === id ? { ...t, status: newStatus } : t))
       );
+      setSaveSuccessMessage("Status updated and edge cache purged!");
+      setTimeout(() => setSaveSuccessMessage(null), 3000);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Status update failed";
       alert(message);
-    }
-  };
-
-  const handleSyncGoogleSheet = async () => {
-    if (!sheetUrl.trim()) {
-      setSheetStatus("Please provide a valid Google Sheet CSV URL.");
-      return;
-    }
-
-    setSheetStatus("Fetching and parsing CSV...");
-    try {
-      const res = await fetch(sheetUrl.trim(), { cache: "no-store" });
-      if (!res.ok) throw new Error("Could not reach sheet URL");
-      const csv = await res.text();
-      const parsed = parseGoogleSheetCsv(csv);
-      if (parsed.length > 0) {
-        setTournaments(parsed);
-        setSheetStatus(`Success! Imported ${parsed.length} tournaments from Google Sheet.`);
-      } else {
-        setSheetStatus("Warning: No valid tournament rows found in CSV.");
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Invalid CSV URL";
-      setSheetStatus(`Failed to sync: ${message}`);
     }
   };
 
@@ -245,10 +225,13 @@ export default function AdminDashboard({
   return (
     <div className="min-h-screen bg-[#08090d] text-white">
       {/* Top Admin Header Bar */}
-      <header className="sticky top-0 z-40 bg-[#0c0e15]/90 backdrop-blur-md border-b border-gray-800">
+      <header className="sticky top-0 z-40 bg-[#0c0e15]/95 backdrop-blur-md border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2 text-xs font-semibold text-gray-400 hover:text-white">
+            <Link
+              href="/"
+              className="min-h-[44px] min-w-[44px] flex items-center gap-2 text-xs font-semibold text-gray-400 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1e38] rounded-lg px-2"
+            >
               <ArrowLeft className="w-4 h-4 text-[#ff1e38]" />
               <span>Back to Site</span>
             </Link>
@@ -270,7 +253,8 @@ export default function AdminDashboard({
 
             <button
               onClick={handleExportJson}
-              className="hidden sm:flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 hover:border-gray-700 text-gray-300 hover:text-white"
+              className="min-h-[44px] hidden sm:flex items-center gap-1.5 text-xs px-3.5 py-2 rounded-lg bg-gray-900 border border-gray-800 hover:border-gray-700 text-gray-300 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1e38]"
+              title="Export tournaments JSON backup"
             >
               <Download className="w-3.5 h-3.5 text-emerald-400" />
               <span>Export</span>
@@ -280,7 +264,7 @@ export default function AdminDashboard({
             <form action="/auth/logout" method="POST">
               <button
                 type="submit"
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-red-950/40 border border-red-900/60 text-red-300 hover:bg-red-900/50 transition-colors"
+                className="min-h-[44px] flex items-center gap-1.5 text-xs px-3.5 py-2 rounded-lg bg-red-950/40 border border-red-900/60 text-red-300 hover:bg-red-900/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1e38]"
                 title="Sign out of coordinator portal"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -295,15 +279,21 @@ export default function AdminDashboard({
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
         {/* Success notification */}
         {saveSuccessMessage && (
-          <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 text-xs font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] animate-bounce">
-            <CheckCircle className="w-4 h-4" />
+          <div
+            role="status"
+            className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 text-xs font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] animate-bounce"
+          >
+            <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>{saveSuccessMessage}</span>
           </div>
         )}
 
         {/* Server Error notification */}
         {serverError && (
-          <div className="p-4 rounded-xl bg-red-950/60 border border-red-500/50 text-red-300 text-xs font-bold flex items-center gap-2 shadow-lg">
+          <div
+            role="alert"
+            className="p-4 rounded-xl bg-red-950/60 border border-red-500/50 text-red-300 text-xs font-bold flex items-center gap-2 shadow-lg"
+          >
             <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
             <span>{serverError}</span>
           </div>
@@ -320,7 +310,7 @@ export default function AdminDashboard({
                 Publish New Tournament
               </h2>
               <p className="text-xs text-gray-400">
-                Inputs are sanitized and validated with Zod. Uploaded posters are served from Supabase CDN.
+                Inputs are sanitized and validated with Zod. Uploaded posters are served from Supabase Storage CDN.
               </p>
             </div>
           </div>
@@ -340,7 +330,7 @@ export default function AdminDashboard({
                     placeholder="e.g. Valorant: Champions Cup"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                    className="w-full min-h-[44px] bg-black/60 border border-gray-800 focus:border-[#ff1e38] focus:outline-none focus:ring-2 focus:ring-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white"
                   />
                 </div>
 
@@ -355,7 +345,7 @@ export default function AdminDashboard({
                     placeholder="e.g. Valorant, BGMI, EA FC 25"
                     value={formData.game}
                     onChange={(e) => setFormData({ ...formData, game: e.target.value })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                    className="w-full min-h-[44px] bg-black/60 border border-gray-800 focus:border-[#ff1e38] focus:outline-none focus:ring-2 focus:ring-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white"
                   />
                 </div>
               </div>
@@ -372,7 +362,7 @@ export default function AdminDashboard({
                     placeholder="e.g. Nov 20 - 22, 2026"
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                    className="w-full min-h-[44px] bg-black/60 border border-gray-800 focus:border-[#ff1e38] focus:outline-none focus:ring-2 focus:ring-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white"
                   />
                 </div>
 
@@ -386,7 +376,7 @@ export default function AdminDashboard({
                     placeholder="e.g. 6:00 PM IST"
                     value={formData.time}
                     onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                    className="w-full min-h-[44px] bg-black/60 border border-gray-800 focus:border-[#ff1e38] focus:outline-none focus:ring-2 focus:ring-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white"
                   />
                 </div>
               </div>
@@ -403,7 +393,7 @@ export default function AdminDashboard({
                     placeholder="e.g. ₹10,000 + Trophy"
                     value={formData.prizePool}
                     onChange={(e) => setFormData({ ...formData, prizePool: e.target.value })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none text-amber-400 font-semibold"
+                    className="w-full min-h-[44px] bg-black/60 border border-gray-800 focus:border-[#ff1e38] focus:outline-none focus:ring-2 focus:ring-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white text-amber-400 font-semibold"
                   />
                 </div>
 
@@ -417,12 +407,12 @@ export default function AdminDashboard({
                     placeholder="e.g. 5v5 Knockout"
                     value={formData.format}
                     onChange={(e) => setFormData({ ...formData, format: e.target.value })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                    className="w-full min-h-[44px] bg-black/60 border border-gray-800 focus:border-[#ff1e38] focus:outline-none focus:ring-2 focus:ring-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white"
                   />
                 </div>
               </div>
 
-              {/* Poster Input + Direct Object Storage Upload Button */}
+              {/* Poster Input + Direct Storage Upload Button */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label htmlFor="poster-input" className="text-[11px] uppercase font-bold text-gray-400">
@@ -430,17 +420,17 @@ export default function AdminDashboard({
                   </label>
                   <label
                     htmlFor="poster-file-input"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-white text-[11px] font-bold cursor-pointer transition-colors active:scale-95"
+                    className="min-h-[44px] inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-white text-[11px] font-bold cursor-pointer transition-colors active:scale-95 focus-within:ring-2 focus-within:ring-[#ff1e38]"
                   >
                     {isUploadingPoster ? (
                       <>
-                        <RefreshCw className="w-3 h-3 animate-spin text-[#ff1e38]" />
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#ff1e38]" />
                         <span>Uploading...</span>
                       </>
                     ) : (
                       <>
-                        <Upload className="w-3 h-3 text-[#ff1e38]" />
-                        <span>Upload Poster (Max 5MB)</span>
+                        <Upload className="w-3.5 h-3.5 text-[#ff1e38]" />
+                        <span>Upload File (Max 5MB)</span>
                       </>
                     )}
                   </label>
@@ -458,20 +448,27 @@ export default function AdminDashboard({
                   id="poster-input"
                   type="url"
                   required
-                  placeholder="https://...supabase.co/storage/v1/object/public/posters/... or external HTTPS"
+                  placeholder="https://...supabase.co/storage/v1/object/public/posters/... or images.unsplash.com"
                   value={formData.posterUrl}
                   onChange={(e) => setFormData({ ...formData, posterUrl: e.target.value })}
-                  className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none font-mono"
+                  className="w-full min-h-[44px] bg-black/60 border border-gray-800 focus:border-[#ff1e38] focus:outline-none focus:ring-2 focus:ring-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono"
                 />
+
+                {!isPosterAllowlisted && formData.posterUrl.length > 0 && (
+                  <p className="text-[10px] text-amber-400 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    <span>Host not in allowlist. Posters must come from Supabase Storage CDN (*.supabase.co) or images.unsplash.com.</span>
+                  </p>
+                )}
 
                 {uploadError && (
                   <p className="text-[10px] text-red-400 mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" />
+                    <AlertCircle className="w-3 h-3 shrink-0" />
                     <span>{uploadError}</span>
                   </p>
                 )}
                 <p className="text-[10px] text-gray-500 mt-1">
-                  Upload an image to host securely on Supabase Storage CDN, or paste any verified HTTPS image URL.
+                  Upload an image to store directly on Supabase Storage CDN, or paste an approved HTTPS URL.
                 </p>
               </div>
 
@@ -486,7 +483,7 @@ export default function AdminDashboard({
                   placeholder="https://docs.google.com/forms/d/e/.../viewform"
                   value={formData.formUrl}
                   onChange={(e) => setFormData({ ...formData, formUrl: e.target.value })}
-                  className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none text-[#ff1e38]"
+                  className="w-full min-h-[44px] bg-black/60 border border-gray-800 focus:border-[#ff1e38] focus:outline-none focus:ring-2 focus:ring-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-[#ff1e38]"
                 />
               </div>
 
@@ -500,11 +497,11 @@ export default function AdminDashboard({
                   placeholder="Brief description of bracket rules, requirements, and eligibility..."
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none resize-none"
+                  className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] focus:outline-none focus:ring-2 focus:ring-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white resize-none"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="status-select" className="text-[11px] uppercase font-bold text-gray-400 block mb-1">
                     Registration Status
@@ -513,7 +510,7 @@ export default function AdminDashboard({
                     id="status-select"
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value as TournamentStatus })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                    className="w-full min-h-[44px] bg-black/60 border border-gray-800 focus:border-[#ff1e38] focus:outline-none focus:ring-2 focus:ring-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white"
                   >
                     <option value="active">Active (Registration Live)</option>
                     <option value="upcoming">Upcoming (Coming Soon)</option>
@@ -531,7 +528,7 @@ export default function AdminDashboard({
                     placeholder="e.g. PC, Mobile, PS5"
                     value={formData.platform}
                     onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                    className="w-full min-h-[44px] bg-black/60 border border-gray-800 focus:border-[#ff1e38] focus:outline-none focus:ring-2 focus:ring-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white"
                   />
                 </div>
               </div>
@@ -539,8 +536,8 @@ export default function AdminDashboard({
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-3.5 rounded-xl font-bold uppercase tracking-wider text-xs text-white bg-gradient-to-r from-[#ff1e38] to-[#b80d22] hover:from-[#ff2a44] hover:to-[#ff1e38] transition-all duration-300 shadow-[0_0_20px_rgba(229,29,54,0.4)] flex items-center justify-center gap-2 disabled:opacity-50"
+                  disabled={isSubmitting || !isPosterAllowlisted}
+                  className="w-full min-h-[48px] py-3.5 rounded-xl font-bold uppercase tracking-wider text-xs text-white bg-gradient-to-r from-[#ff1e38] to-[#b80d22] hover:from-[#ff2a44] hover:to-[#ff1e38] transition-all duration-300 shadow-[0_0_20px_rgba(229,29,54,0.4)] flex items-center justify-center gap-2 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
                   {isSubmitting ? (
                     <>
@@ -557,7 +554,7 @@ export default function AdminDashboard({
               </div>
             </form>
 
-            {/* Live Preview Card */}
+            {/* Live Preview Card with Safe Next/Image onError Fallback */}
             <div className="lg:col-span-5 bg-black/50 border border-gray-800/80 rounded-2xl p-5">
               <div className="flex items-center justify-between mb-3 text-xs font-bold uppercase tracking-wider text-gray-400">
                 <span className="flex items-center gap-1.5 text-[#ff1e38]">
@@ -569,13 +566,27 @@ export default function AdminDashboard({
 
               <div className="bg-[#12141d] border border-[#ff1e38]/60 rounded-2xl overflow-hidden shadow-[0_0_20px_rgba(229,29,54,0.25)]">
                 <div className="relative aspect-[16/10] w-full overflow-hidden bg-black/70">
-                  <Image
-                    src={formData.posterUrl || "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1200&auto=format&fit=crop"}
-                    alt="Preview Poster"
-                    fill
-                    sizes="(max-width: 768px) 100vw, 500px"
-                    className="object-cover"
-                  />
+                  {isPosterAllowlisted && !previewImageError ? (
+                    <Image
+                      src={formData.posterUrl}
+                      alt="Preview Poster"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 500px"
+                      onError={() => setFailedPreviewUrl(formData.posterUrl)}
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-black via-gray-950 to-gray-900 flex flex-col items-center justify-center text-center p-4 gap-2">
+                      <ImageOff className="w-8 h-8 text-gray-600" />
+                      <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                        {previewImageError ? "Image failed to load" : "Allowlisted Poster URL Required"}
+                      </span>
+                      <span className="text-[9px] text-gray-600 max-w-xs">
+                        Use Supabase Storage CDN (*.supabase.co) or upload via the button.
+                      </span>
+                    </div>
+                  )}
+
                   <div className="absolute top-3 left-3 z-10">
                     <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-black/75 backdrop-blur-md text-emerald-400 border border-emerald-500/40">
                       {formData.status === "active" ? "Registration Live" : "Upcoming"}
@@ -649,7 +660,7 @@ export default function AdminDashboard({
           <div className="space-y-3">
             {tournaments.length === 0 ? (
               <p className="text-gray-500 text-xs py-8 text-center">
-                No tournaments found. Create one above!
+                No tournaments found in database. Create one above!
               </p>
             ) : (
               tournaments.map((t) => (
@@ -659,13 +670,19 @@ export default function AdminDashboard({
                 >
                   <div className="flex items-center gap-4">
                     <div className="relative w-16 h-12 rounded-lg overflow-hidden bg-gray-900 shrink-0">
-                      <Image
-                        src={t.posterUrl}
-                        alt={t.title}
-                        fill
-                        sizes="64px"
-                        className="object-cover"
-                      />
+                      {isAllowlistedPosterUrl(t.posterUrl) ? (
+                        <Image
+                          src={t.posterUrl}
+                          alt={t.title}
+                          fill
+                          sizes="64px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-950 flex items-center justify-center">
+                          <ImageOff className="w-4 h-4 text-gray-600" />
+                        </div>
+                      )}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -688,7 +705,7 @@ export default function AdminDashboard({
                       value={t.status}
                       aria-label="Tournament Status"
                       onChange={(e) => handleStatusChange(t.id, e.target.value as TournamentStatus)}
-                      className={`text-[11px] font-bold uppercase rounded-lg px-2.5 py-1.5 outline-none border transition-colors ${
+                      className={`min-h-[44px] text-[11px] font-bold uppercase rounded-lg px-2.5 py-1.5 outline-none border transition-colors focus:ring-2 focus:ring-[#ff1e38] ${
                         t.status === "active"
                           ? "bg-emerald-950/50 border-emerald-500/50 text-emerald-300"
                           : t.status === "upcoming"
@@ -701,13 +718,13 @@ export default function AdminDashboard({
                       <option value="completed">Completed</option>
                     </select>
 
-                    {/* Test Form Link */}
+                    {/* Test Registration Form Link */}
                     {t.formUrl.startsWith("https://") && (
                       <a
                         href={t.formUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 rounded-lg bg-gray-900 border border-gray-800 text-gray-300 hover:text-white hover:border-gray-700"
+                        className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-lg bg-gray-900 border border-gray-800 text-gray-300 hover:text-white hover:border-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1e38]"
                         title="Test Registration Form Link"
                         aria-label="Test Registration Form Link"
                       >
@@ -715,10 +732,10 @@ export default function AdminDashboard({
                       </a>
                     )}
 
-                    {/* Delete Event */}
+                    {/* Delete Tournament Action */}
                     <button
                       onClick={() => handleDeleteTournament(t.id)}
-                      className="p-2 rounded-lg bg-red-950/40 border border-red-900/60 text-red-400 hover:bg-red-900/60"
+                      className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-lg bg-red-950/40 border border-red-900/60 text-red-400 hover:bg-red-900/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1e38]"
                       title="Delete Tournament"
                       aria-label="Delete Tournament"
                     >
@@ -727,48 +744,6 @@ export default function AdminDashboard({
                   </div>
                 </div>
               ))
-            )}
-          </div>
-        </section>
-
-        {/* Section 3: Google Sheets Live Sync */}
-        <section className="bg-[#10121b] border border-gray-800 rounded-3xl p-6 sm:p-8">
-          <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
-              <FileSpreadsheet className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-lg font-black uppercase tracking-wide">
-                Google Sheets Live Sync (Optional)
-              </h2>
-              <p className="text-xs text-gray-400">
-                Sync with external CSV for batch imports.
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="url"
-                aria-label="Google Sheet CSV URL"
-                placeholder="Paste Google Sheet published CSV link (e.g. https://docs.google.com/.../pub?output=csv)"
-                value={sheetUrl}
-                onChange={(e) => setSheetUrl(e.target.value)}
-                className="flex-1 bg-black/60 border border-gray-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs text-white outline-none"
-              />
-              <button
-                type="button"
-                onClick={handleSyncGoogleSheet}
-                className="px-6 py-2.5 rounded-xl font-bold uppercase tracking-wider text-xs text-white bg-emerald-600 hover:bg-emerald-500 transition-colors flex items-center justify-center gap-2 shadow-lg"
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                <span>Import CSV</span>
-              </button>
-            </div>
-
-            {sheetStatus && (
-              <p className="text-xs text-emerald-400 font-semibold">{sheetStatus}</p>
             )}
           </div>
         </section>
