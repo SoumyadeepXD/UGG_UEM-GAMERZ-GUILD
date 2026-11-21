@@ -1,7 +1,16 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { initialTournaments } from "@/data/initialTournaments";
 import AdminDashboard from "./AdminDashboard";
+
+/**
+ * Force on-demand server rendering per request.
+ * Guarantees that /admin is never statically pre-rendered at build time.
+ * Every incoming request must provide an authenticated coordinator session cookie.
+ */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const metadata = {
   title: "Coordinator Portal | UGG",
@@ -12,6 +21,9 @@ export const metadata = {
 };
 
 export default async function AdminPage() {
+  // Ensure cookies are accessed to enforce dynamic request-time rendering
+  await cookies();
+
   // If Supabase environment variables are missing (e.g. before initial setup), redirect to login
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     redirect("/admin/login");
@@ -23,11 +35,12 @@ export default async function AdminPage() {
     error,
   } = await supabase.auth.getUser();
 
+  // Unauthenticated requests are immediately bounced; no admin data or UI is rendered
   if (error || !user) {
     redirect("/admin/login");
   }
 
-  // Admin Role Check
+  // Server-side Admin Authorization Guard
   const adminEmails = (process.env.ADMIN_EMAILS || "")
     .split(",")
     .map((e) => e.trim().toLowerCase())
@@ -42,7 +55,7 @@ export default async function AdminPage() {
     redirect("/admin/unauthorized");
   }
 
-  // Load active tournaments from database
+  // Load active tournaments from database for authorized coordinator only
   let tournaments = initialTournaments;
   try {
     const { data: dbTournaments, error: dbError } = await supabase

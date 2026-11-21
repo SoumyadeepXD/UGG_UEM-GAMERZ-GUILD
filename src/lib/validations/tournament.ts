@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isAllowlistedPosterUrl, isValidRegistrationUrl } from "./urlAllowlist";
 
 /**
  * Strips HTML tags, script vectors, and dangerous characters from user input text.
@@ -15,14 +16,25 @@ export function sanitizeText(input: string): string {
 }
 
 /**
- * Validates that a string is a well-formed HTTPS URL.
+ * Validates that a string is a well-formed HTTPS registration URL.
  */
-const httpsUrlSchema = z
+const registrationUrlSchema = z
   .string()
   .trim()
-  .url({ message: "Must be a valid URL" })
-  .refine((url) => url.startsWith("https://"), {
-    message: "URL must strictly use HTTPS protocol",
+  .url({ message: "Registration link must be a valid URL" })
+  .refine((url) => isValidRegistrationUrl(url), {
+    message: "Registration URL must strictly use HTTPS protocol",
+  });
+
+/**
+ * Validates that a string is an approved poster CDN URL.
+ */
+const posterUrlSchema = z
+  .string()
+  .trim()
+  .url({ message: "Poster must be a valid URL" })
+  .refine((url) => isAllowlistedPosterUrl(url), {
+    message: "Poster URL host is not in the approved CDN allowlist (authorized hosts: *.supabase.co, images.unsplash.com)",
   });
 
 export const tournamentSchema = z.object({
@@ -47,7 +59,7 @@ export const tournamentSchema = z.object({
     .min(2, { message: "Game name must be at least 2 characters" })
     .max(50, { message: "Game name cannot exceed 50 characters" })
     .transform(sanitizeText),
-  posterUrl: httpsUrlSchema,
+  posterUrl: posterUrlSchema,
   date: z
     .string()
     .trim()
@@ -96,7 +108,7 @@ export const tournamentSchema = z.object({
     .transform(sanitizeText)
     .optional()
     .default(""),
-  formUrl: httpsUrlSchema,
+  formUrl: registrationUrlSchema,
   status: z.enum(["active", "upcoming", "completed"], {
     message: "Status must be active, upcoming, or completed",
   }),
