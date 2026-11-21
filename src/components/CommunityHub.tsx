@@ -1,5 +1,3 @@
-"use client";
-
 import React from "react";
 import { siteConfig } from "@/config/site";
 import {
@@ -29,7 +27,7 @@ export default function CommunityHub() {
       link: siteConfig.socials.discord,
       icon: DiscordIcon,
       accentBg: "bg-indigo-500/15 text-indigo-400 border-indigo-500/30",
-      badge: "1,200+ Members",
+      badge: "Voice & Scrims",
     },
     {
       name: "Instagram",
@@ -59,63 +57,63 @@ export default function CommunityHub() {
           <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-14">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#ff1e38]/10 border border-[#ff1e38]/20 text-[#ff1e38] text-[11px] font-bold uppercase tracking-wider mb-2">
               <Share2 className="w-3.5 h-3.5" />
-              <span>Connect & Compete</span>
+              <span>Official Channels</span>
             </div>
             <h2 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">
-              Official <span className="text-[#ff1e38]">Communities</span>
+              Join the <span className="text-[#ff1e38]">Network</span>
             </h2>
-            <p className="text-gray-400 text-xs sm:text-sm mt-1">
-              Never miss a tournament notice or bracket drop. Join all our official guild channels.
+            <p className="text-gray-400 text-xs sm:text-sm mt-2 max-w-md mx-auto">
+              Follow UGG across campus comms. Direct tournament bracket links are broadcasted exclusively to these verified handles.
             </p>
           </div>
         </ScrollReveal>
 
-        {/* 2x2 Grid on Mobile, 4 Columns on Desktop with Staggered Scroll Animation */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-          {channels.map((channel, idx) => {
-            const Icon = channel.icon;
+        {/* 4 Social Cards Grid with Staggered Scroll Animations */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {channels.map((chan, idx) => {
+            const Icon = chan.icon;
             return (
               <ScrollReveal
                 key={idx}
                 direction="up"
-                delay={100 + idx * 80}
+                delay={100 + idx * 75}
                 className="h-full"
               >
                 <a
-                  href={channel.link}
+                  href={chan.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group relative p-4 sm:p-6 rounded-2xl bg-[#0f1118] border border-white/10 hover:border-[#ff1e38]/50 transition-all duration-300 flex flex-col justify-between hover:-translate-y-1 shadow-lg h-full"
+                  className="group relative p-5 sm:p-6 rounded-2xl bg-[#0b0c14] border border-white/10 hover:border-[#ff1e38]/50 transition-all duration-300 flex flex-col justify-between h-full hover:shadow-[0_8px_30px_rgba(255,30,56,0.15)] active:scale-98"
                 >
                   <div>
-                    {/* Top Bar with Icon & Badge */}
-                    <div className="flex items-center justify-between mb-3 sm:mb-4">
-                      <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl ${channel.accentBg} border p-2 flex items-center justify-center shrink-0`}>
-                        <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+                    {/* Top row: Icon + Badge */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 rounded-xl bg-black/60 border border-white/10 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <Icon className="w-6 h-6 text-white group-hover:text-[#ff1e38] transition-colors" />
                       </div>
-                      <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-white/[0.05] text-gray-300 hidden xs:inline-block">
-                        {channel.badge}
+                      <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full border ${chan.accentBg}`}>
+                        {chan.badge}
                       </span>
                     </div>
 
-                    {/* Title & Handle */}
-                    <h3 className="text-sm sm:text-base font-black text-white group-hover:text-white transition-colors">
-                      {channel.name}
+                    {/* Channel Title & Handle */}
+                    <h3 className="font-black text-lg text-white group-hover:text-[#ff1e38] transition-colors">
+                      {chan.name}
                     </h3>
-                    <p className="text-[11px] text-gray-400 font-semibold mb-2 truncate">
-                      {channel.handle}
+                    <p className="text-xs font-semibold text-gray-400 mb-2">
+                      {chan.handle}
                     </p>
 
-                    {/* Description (desktop or larger mobile) */}
-                    <p className="text-[11px] text-gray-400 leading-relaxed mb-4 hidden sm:block">
-                      {channel.description}
+                    {/* Description */}
+                    <p className="text-xs text-gray-400 leading-relaxed">
+                      {chan.description}
                     </p>
                   </div>
 
-                  {/* Bottom Action Footer */}
-                  <div className="pt-2 sm:pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs font-bold text-white group-hover:text-[#ff1e38] transition-colors">
-                    <span className="text-[11px] sm:text-xs">Join Channel</span>
-                    <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  {/* Bottom link prompt */}
+                  <div className="mt-5 pt-3.5 border-t border-white/[0.08] flex items-center justify-between text-xs font-bold uppercase tracking-wider text-gray-400 group-hover:text-white transition-colors">
+                    <span>Connect Now</span>
+                    <ExternalLink className="w-4 h-4 text-[#ff1e38] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                   </div>
                 </a>
               </ScrollReveal>
@@ -123,30 +121,30 @@ export default function CommunityHub() {
           })}
         </div>
 
-        {/* Discord Scrims Highlight Banner */}
-        <ScrollReveal direction="up" delay={350}>
-          <div className="mt-8 sm:mt-12 p-5 sm:p-7 rounded-2xl bg-gradient-to-r from-[#141622] to-[#0e1017] border border-white/10 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
-            <div className="flex items-center gap-4 text-center sm:text-left">
-              <div className="w-12 h-12 rounded-2xl bg-[#ff1e38]/15 border border-[#ff1e38]/30 flex items-center justify-center text-[#ff1e38] shrink-0">
-                <Radio className="w-6 h-6 animate-pulse" />
+        {/* Live Guild Status Banner */}
+        <ScrollReveal direction="up" delay={450}>
+          <div className="mt-10 sm:mt-12 p-4 sm:p-5 rounded-2xl bg-[#0f111a] border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                <Radio className="w-4 h-4 animate-pulse" />
               </div>
-              <div>
-                <h4 className="text-sm sm:text-base font-black text-white uppercase tracking-wide">
-                  Hosting a custom match or scrim?
+              <div className="text-center sm:text-left">
+                <h4 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide">
+                  UGG Scrim Lobbies Live
                 </h4>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Get dedicated voice rooms and tournament moderation for your collegiate squad in Discord.
+                <p className="text-[11px] text-gray-400">
+                  Join Discord #custom-match lobbies or WhatsApp alerts to get pinged when scrim rooms open.
                 </p>
               </div>
             </div>
+
             <a
               href={siteConfig.socials.discord}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full sm:w-auto px-5 py-3 rounded-xl font-bold uppercase tracking-wider text-xs text-white bg-gradient-to-r from-[#ff1e38] to-[#d90429] hover:from-[#ff334b] hover:to-[#ff1e38] transition-all flex items-center justify-center gap-2 shrink-0 btn-glow-red"
+              className="px-5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white font-bold text-xs uppercase tracking-wider transition-all shrink-0 hover:border-white/20 active:scale-95"
             >
-              <DiscordIcon className="w-4 h-4" />
-              <span>Join Discord Server</span>
+              Enter Server
             </a>
           </div>
         </ScrollReveal>

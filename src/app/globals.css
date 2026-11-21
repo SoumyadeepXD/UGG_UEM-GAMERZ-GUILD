@@ -1,4 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Inter:wght@400;500;600&display=swap');
 @import "tailwindcss";
+@import "../styles/ugg.css";
 
 @theme {
   --color-ugg-red: #ff1e38;
@@ -32,6 +34,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Accessible visible focus states */
+:focus-visible {
+  outline: 2px solid #ff1e38;
+  outline-offset: 2px;
+}
+
 /* Hardware-accelerated Marquee Animation */
 @keyframes marquee {
   0% { transform: translate3d(0%, 0, 0); }
@@ -45,7 +53,8 @@ body {
   will-change: transform;
 }
 
-.animate-marquee:hover {
+.animate-marquee:hover,
+.animate-marquee:focus-within {
   animation-play-state: paused;
 }
 
@@ -84,7 +93,7 @@ body {
     radial-gradient(circle at 100% 100%, rgba(255, 30, 56, 0.05) 0%, transparent 40%);
 }
 
-/* Touch-optimized horizontal scrolling without ugly scrollbars */
+/* Touch-optimized horizontal scrolling without scrollbars */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -111,4 +120,26 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #ff1e38;
+}
+
+/* Accessibility: Honor system-level prefers-reduced-motion across all elements */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .animate-marquee,
+  .animate-slide-timer,
+  .animate-pulse,
+  .animate-bounce,
+  .animate-spin {
+    animation: none !important;
+    transform: none !important;
+  }
 }

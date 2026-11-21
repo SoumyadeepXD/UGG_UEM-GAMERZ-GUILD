@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 interface ScrollRevealProps {
   children: React.ReactNode;
@@ -11,6 +11,18 @@ interface ScrollRevealProps {
   threshold?: number;
 }
 
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+function subscribeReducedMotion(callback: () => void) {
+  if (typeof window === "undefined") return () => {};
+  const mq = window.matchMedia(REDUCED_MOTION_QUERY);
+  mq.addEventListener("change", callback);
+  return () => mq.removeEventListener("change", callback);
+}
+const getReducedMotion = () =>
+  typeof window !== "undefined" && window.matchMedia(REDUCED_MOTION_QUERY).matches;
+const getReducedMotionServer = () => false;
+
 export default function ScrollReveal({
   children,
   direction = "up",
@@ -19,18 +31,21 @@ export default function ScrollReveal({
   className = "",
   threshold = 0.1,
 }: ScrollRevealProps) {
-  const [isVisible, setIsVisible] = useState(false);
+  const reducedMotion = useSyncExternalStore(
+    subscribeReducedMotion,
+    getReducedMotion,
+    getReducedMotionServer
+  );
+
+  const [isVisible, setIsVisible] = useState(
+    () => typeof window !== "undefined" && !("IntersectionObserver" in window)
+  );
   const domRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    if (reducedMotion) return;
     const currentElement = domRef.current;
-    if (!currentElement) return;
-
-    // Check if IntersectionObserver is supported
-    if (!("IntersectionObserver" in window)) {
-      setIsVisible(true);
-      return;
-    }
+    if (!currentElement || !("IntersectionObserver" in window)) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -52,7 +67,11 @@ export default function ScrollReveal({
     return () => {
       if (currentElement) observer.unobserve(currentElement);
     };
-  }, [threshold]);
+  }, [threshold, reducedMotion]);
+
+  if (reducedMotion) {
+    return <div className={className}>{children}</div>;
+  }
 
   // Initial hidden transforms based on direction
   const getTransform = () => {

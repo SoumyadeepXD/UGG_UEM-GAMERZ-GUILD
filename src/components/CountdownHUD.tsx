@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Clock, ShieldAlert } from "lucide-react";
+import { Clock } from "lucide-react";
 
 export default function CountdownHUD({
   targetDate = "2026-10-18T18:00:00+05:30",
