@@ -94,7 +94,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark scroll-smooth">
-      <body className="min-h-screen bg-[#060709] text-gray-100 antialiased selection:bg-[#ff1e38] selection:text-white font-sans">
+      <body className="min-h-screen bg-[#050506] text-white antialiased selection:bg-[#e11d2e] selection:text-white">
         {children}
         <Analytics />
       </body>

@@ -27,7 +27,7 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), browsing-topics=()",
+    value: "camera=(), microphone=(), geolocation=()",
   },
   // No "preload": add it only after confirming every subdomain serves HTTPS.
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
@@ -37,9 +37,9 @@ const securityHeaders = [
     value: [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-      "style-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       `img-src ${imgSrc}`,
-      "font-src 'self'",
+      "font-src 'self' https://fonts.gstatic.com",
       `connect-src ${connectSrc}`,
       "frame-ancestors 'none'",
       "base-uri 'self'",
