@@ -1,5 +1,3 @@
-"use client";
-
 import React from "react";
 import { Flame, Shield, Trophy, Radio, Terminal, Gamepad2 } from "lucide-react";
 

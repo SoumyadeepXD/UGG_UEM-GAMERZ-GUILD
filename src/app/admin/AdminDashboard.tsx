@@ -22,6 +22,7 @@ import {
   LogOut,
   AlertCircle,
   RefreshCw,
+  Upload,
 } from "lucide-react";
 
 interface AdminDashboardProps {
@@ -39,6 +40,8 @@ export default function AdminDashboard({
   const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingPoster, setIsUploadingPoster] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // New Tournament Form State
   const [formData, setFormData] = useState<Omit<Tournament, "id">>({
@@ -55,6 +58,53 @@ export default function AdminDashboard({
     formUrl: "https://docs.google.com/forms",
     status: "active",
   });
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadError(null);
+
+    // Client-side quick check
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("File exceeds 5MB limit. Please upload an image under 5MB.");
+      return;
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/avif"];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError("Invalid image format. Supported formats: JPEG, PNG, WebP, AVIF.");
+      return;
+    }
+
+    setIsUploadingPoster(true);
+
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", file);
+
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: uploadFormData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to upload poster to storage");
+      }
+
+      cyberSound.playClick();
+      setFormData((prev) => ({ ...prev, posterUrl: data.url }));
+      setSaveSuccessMessage("Poster uploaded to Supabase Storage CDN successfully!");
+      setTimeout(() => setSaveSuccessMessage(null), 4000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      setUploadError(msg);
+    } finally {
+      setIsUploadingPoster(false);
+      e.target.value = "";
+    }
+  };
 
   const handleAddTournament = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,11 +149,10 @@ export default function AdminDashboard({
         status: "active",
       });
 
-      setSaveSuccessMessage("Tournament saved & edge cache revalidated!");
-      setTimeout(() => setSaveSuccessMessage(null), 3500);
+      setSaveSuccessMessage("Tournament published & edge cache invalidated!");
+      setTimeout(() => setSaveSuccessMessage(null), 4000);
     } catch (err: unknown) {
-      cyberSound.playClick();
-      const message = err instanceof Error ? err.message : "Submission failed";
+      const message = err instanceof Error ? err.message : "Creation failed";
       setServerError(message);
     } finally {
       setIsSubmitting(false);
@@ -260,7 +309,7 @@ export default function AdminDashboard({
           </div>
         )}
 
-        {/* Section 1: Add Event Form with Live Card Preview */}
+        {/* Section 1: Add New Tournament Form + Live Preview */}
         <section className="bg-[#10121b] border border-gray-800 rounded-3xl p-6 sm:p-8">
           <div className="flex items-center gap-2.5 mb-6">
             <div className="w-8 h-8 rounded-lg bg-[#ff1e38]/15 text-[#ff1e38] flex items-center justify-center">
@@ -271,13 +320,13 @@ export default function AdminDashboard({
                 Publish New Tournament
               </h2>
               <p className="text-xs text-gray-400">
-                Server-validated with Zod and instantly revalidated at Vercel Edge.
+                Inputs are sanitized and validated with Zod. Uploaded posters are served from Supabase CDN.
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Form Fields */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Form Inputs */}
             <form onSubmit={handleAddTournament} className="lg:col-span-7 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -288,7 +337,7 @@ export default function AdminDashboard({
                     id="title-input"
                     type="text"
                     required
-                    placeholder="e.g. Valorant Winter Cup"
+                    placeholder="e.g. Valorant: Champions Cup"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
@@ -296,38 +345,31 @@ export default function AdminDashboard({
                 </div>
 
                 <div>
-                  <label htmlFor="game-select" className="text-[11px] uppercase font-bold text-gray-400 block mb-1">
-                    Game / Category *
+                  <label htmlFor="game-input" className="text-[11px] uppercase font-bold text-gray-400 block mb-1">
+                    Game Title *
                   </label>
-                  <select
-                    id="game-select"
+                  <input
+                    id="game-input"
+                    type="text"
+                    required
+                    placeholder="e.g. Valorant, BGMI, EA FC 25"
                     value={formData.game}
                     onChange={(e) => setFormData({ ...formData, game: e.target.value })}
                     className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
-                  >
-                    <option value="Valorant">Valorant</option>
-                    <option value="BGMI">BGMI</option>
-                    <option value="EA Sports FC 25">EA Sports FC 25</option>
-                    <option value="Counter-Strike 2">Counter-Strike 2</option>
-                    <option value="Rocket League">Rocket League</option>
-                    <option value="Call of Duty">Call of Duty</option>
-                    <option value="Free Fire">Free Fire</option>
-                    <option value="Chess">Chess</option>
-                    <option value="Other">Other Esports</option>
-                  </select>
+                  />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="date-input" className="text-[11px] uppercase font-bold text-gray-400 block mb-1">
-                    Date & Schedule *
+                    Tournament Dates *
                   </label>
                   <input
                     id="date-input"
                     type="text"
                     required
-                    placeholder="e.g. Oct 25 - 27, 2026"
+                    placeholder="e.g. Nov 20 - 22, 2026"
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                     className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
@@ -335,16 +377,33 @@ export default function AdminDashboard({
                 </div>
 
                 <div>
+                  <label htmlFor="time-input" className="text-[11px] uppercase font-bold text-gray-400 block mb-1">
+                    Match Time
+                  </label>
+                  <input
+                    id="time-input"
+                    type="text"
+                    placeholder="e.g. 6:00 PM IST"
+                    value={formData.time}
+                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
                   <label htmlFor="prize-input" className="text-[11px] uppercase font-bold text-gray-400 block mb-1">
-                    Prize Pool
+                    Prize Pool *
                   </label>
                   <input
                     id="prize-input"
                     type="text"
-                    placeholder="e.g. ₹10,000 + Trophies"
+                    required
+                    placeholder="e.g. ₹10,000 + Trophy"
                     value={formData.prizePool}
                     onChange={(e) => setFormData({ ...formData, prizePool: e.target.value })}
-                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                    className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none text-amber-400 font-semibold"
                   />
                 </div>
 
@@ -363,19 +422,57 @@ export default function AdminDashboard({
                 </div>
               </div>
 
+              {/* Poster Input + Direct Object Storage Upload Button */}
               <div>
-                <label htmlFor="poster-input" className="text-[11px] uppercase font-bold text-gray-400 block mb-1">
-                  Poster Image URL (HTTPS Only) *
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label htmlFor="poster-input" className="text-[11px] uppercase font-bold text-gray-400">
+                    Poster Image (Supabase Storage CDN) *
+                  </label>
+                  <label
+                    htmlFor="poster-file-input"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-white text-[11px] font-bold cursor-pointer transition-colors active:scale-95"
+                  >
+                    {isUploadingPoster ? (
+                      <>
+                        <RefreshCw className="w-3 h-3 animate-spin text-[#ff1e38]" />
+                        <span>Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-3 h-3 text-[#ff1e38]" />
+                        <span>Upload Poster (Max 5MB)</span>
+                      </>
+                    )}
+                  </label>
+                  <input
+                    id="poster-file-input"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/avif"
+                    className="hidden"
+                    disabled={isUploadingPoster}
+                    onChange={handleFileUpload}
+                  />
+                </div>
+
                 <input
                   id="poster-input"
                   type="url"
                   required
-                  placeholder="https://images.unsplash.com/..."
+                  placeholder="https://...supabase.co/storage/v1/object/public/posters/... or external HTTPS"
                   value={formData.posterUrl}
                   onChange={(e) => setFormData({ ...formData, posterUrl: e.target.value })}
-                  className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                  className="w-full bg-black/60 border border-gray-800 focus:border-[#ff1e38] rounded-xl px-3.5 py-2.5 text-xs text-white outline-none font-mono"
                 />
+
+                {uploadError && (
+                  <p className="text-[10px] text-red-400 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    <span>{uploadError}</span>
+                  </p>
+                )}
+                <p className="text-[10px] text-gray-500 mt-1">
+                  Upload an image to host securely on Supabase Storage CDN, or paste any verified HTTPS image URL.
+                </p>
               </div>
 
               <div>

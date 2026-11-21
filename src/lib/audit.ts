@@ -5,6 +5,7 @@ export type AuditAction =
   | "UPDATE_TOURNAMENT"
   | "DELETE_TOURNAMENT"
   | "UPDATE_STATUS"
+  | "UPLOAD_POSTER"
   | "SYNC_GOOGLE_SHEET"
   | "LOGIN_SUCCESS"
   | "LOGIN_FAILED";
@@ -51,6 +52,6 @@ export async function logAdminAction(entry: AuditLogEntry): Promise<void> {
       }
     }
   } catch (err) {
-    console.error("Exception during audit logging:", err);
+    console.error("Error writing audit log:", err);
   }
 }

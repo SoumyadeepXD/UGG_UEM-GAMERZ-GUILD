@@ -173,3 +173,58 @@ insert into public.tournaments (
     32
   )
 on conflict (id) do nothing;
+
+-- 8. Object Storage Setup for Tournament Posters
+-- Creates the public 'posters' bucket with a 5MB size limit and image-only MIME restriction
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'posters',
+  'posters',
+  true,
+  5242880, -- 5 MB in bytes
+  array['image/jpeg', 'image/png', 'image/webp', 'image/avif']
+)
+on conflict (id) do update set
+  public = true,
+  file_size_limit = 5242880,
+  allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
+
+-- Storage RLS: Public Read for Posters
+drop policy if exists "Public visitors can view tournament posters" on storage.objects;
+create policy "Public visitors can view tournament posters"
+  on storage.objects for select
+  using (bucket_id = 'posters');
+
+-- Storage RLS: Only authenticated coordinators can upload posters
+drop policy if exists "Coordinators can upload tournament posters" on storage.objects;
+create policy "Coordinators can upload tournament posters"
+  on storage.objects for insert
+  to authenticated
+  with check (
+    bucket_id = 'posters'
+    and (
+      (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+      or exists (
+        select 1 from auth.users
+        where auth.users.id = auth.uid()
+        and auth.users.email in ('gamerzguild@uem.edu.in')
+      )
+    )
+  );
+
+-- Storage RLS: Only authenticated coordinators can delete/manage posters
+drop policy if exists "Coordinators can manage tournament posters" on storage.objects;
+create policy "Coordinators can manage tournament posters"
+  on storage.objects for delete
+  to authenticated
+  using (
+    bucket_id = 'posters'
+    and (
+      (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+      or exists (
+        select 1 from auth.users
+        where auth.users.id = auth.uid()
+        and auth.users.email in ('gamerzguild@uem.edu.in')
+      )
+    )
+  );
