@@ -12,12 +12,11 @@ export async function PUT(
 ) {
   const { id } = await params;
   const ip = getClientIp(request.headers);
-  const limiter = rateLimit(`admin-write-${ip}`, { max: 30, windowMs: 60000 });
+  const limiter = await rateLimit(`admin-write-${ip}`, { max: 30, windowMs: 60000 });
   if (!limiter.success) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   }
 
-  // (a) Verify session and admin email
   const auth = await verifyAdminRequest();
   if (!auth.authorized || !auth.user) {
     return auth.errorResponse!;
@@ -26,7 +25,6 @@ export async function PUT(
   try {
     const body = await request.json();
 
-    // (b) Validate input with Zod
     const parseResult = tournamentSchema.safeParse(body);
     if (!parseResult.success) {
       return NextResponse.json(
@@ -61,13 +59,13 @@ export async function PUT(
       .eq("id", id);
 
     if (error) {
-      console.warn("Supabase update warning:", error.message);
+      console.error("Supabase tournament update error:", error.message);
+      return NextResponse.json({ error: "Failed to update tournament record" }, { status: 500 });
     }
 
-    // (c) Write audit log row
     await logAdminAction({
       actorId: auth.user.id,
-      actorEmail: auth.user.email || "unknown@uem.edu.in",
+      actorEmail: auth.user.email || "admin@ugg.gg",
       action: "UPDATE_TOURNAMENT",
       resourceId: id,
       ipAddress: ip,
@@ -78,14 +76,13 @@ export async function PUT(
       },
     });
 
-    // (d) Call revalidatePath
     revalidatePath("/");
     revalidatePath("/admin");
 
     return NextResponse.json({ success: true, id });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Update failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Update tournament exception:", err);
+    return NextResponse.json({ error: "Failed to process tournament update" }, { status: 500 });
   }
 }
 
@@ -95,12 +92,11 @@ export async function PATCH(
 ) {
   const { id } = await params;
   const ip = getClientIp(request.headers);
-  const limiter = rateLimit(`admin-write-${ip}`, { max: 30, windowMs: 60000 });
+  const limiter = await rateLimit(`admin-write-${ip}`, { max: 30, windowMs: 60000 });
   if (!limiter.success) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   }
 
-  // (a) Verify session and admin email
   const auth = await verifyAdminRequest();
   if (!auth.authorized || !auth.user) {
     return auth.errorResponse!;
@@ -109,7 +105,6 @@ export async function PATCH(
   try {
     const body = await request.json();
 
-    // (b) Validate input with Zod
     const parseResult = updateStatusSchema.safeParse(body);
     if (!parseResult.success) {
       return NextResponse.json(
@@ -133,13 +128,13 @@ export async function PATCH(
       .eq("id", id);
 
     if (error) {
-      console.warn("Supabase status update warning:", error.message);
+      console.error("Supabase status update error:", error.message);
+      return NextResponse.json({ error: "Failed to update tournament status" }, { status: 500 });
     }
 
-    // (c) Write audit log row
     await logAdminAction({
       actorId: auth.user.id,
-      actorEmail: auth.user.email || "unknown@uem.edu.in",
+      actorEmail: auth.user.email || "admin@ugg.gg",
       action: "UPDATE_STATUS",
       resourceId: id,
       ipAddress: ip,
@@ -147,14 +142,13 @@ export async function PATCH(
       details: { newStatus: status },
     });
 
-    // (d) Call revalidatePath
     revalidatePath("/");
     revalidatePath("/admin");
 
     return NextResponse.json({ success: true, id, status });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Patch failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Patch status exception:", err);
+    return NextResponse.json({ error: "Failed to process status update" }, { status: 500 });
   }
 }
 
@@ -164,12 +158,11 @@ export async function DELETE(
 ) {
   const { id } = await params;
   const ip = getClientIp(request.headers);
-  const limiter = rateLimit(`admin-write-${ip}`, { max: 20, windowMs: 60000 });
+  const limiter = await rateLimit(`admin-write-${ip}`, { max: 20, windowMs: 60000 });
   if (!limiter.success) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   }
 
-  // (a) Verify session and admin email
   const auth = await verifyAdminRequest();
   if (!auth.authorized || !auth.user) {
     return auth.errorResponse!;
@@ -180,26 +173,25 @@ export async function DELETE(
     const { error } = await supabase.from("tournaments").delete().eq("id", id);
 
     if (error) {
-      console.warn("Supabase delete warning:", error.message);
+      console.error("Supabase tournament delete error:", error.message);
+      return NextResponse.json({ error: "Failed to delete tournament record" }, { status: 500 });
     }
 
-    // (c) Write audit log row
     await logAdminAction({
       actorId: auth.user.id,
-      actorEmail: auth.user.email || "unknown@uem.edu.in",
+      actorEmail: auth.user.email || "admin@ugg.gg",
       action: "DELETE_TOURNAMENT",
       resourceId: id,
       ipAddress: ip,
       userAgent: request.headers.get("user-agent") || undefined,
     });
 
-    // (d) Call revalidatePath
     revalidatePath("/");
     revalidatePath("/admin");
 
     return NextResponse.json({ success: true, deletedId: id });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Delete failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Delete tournament exception:", err);
+    return NextResponse.json({ error: "Failed to process tournament deletion" }, { status: 500 });
   }
 }

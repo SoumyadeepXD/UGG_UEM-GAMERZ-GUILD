@@ -22,7 +22,7 @@ export function isAllowlistedPosterUrl(rawUrl?: string | null): boolean {
 
     const hostname = parsed.hostname.toLowerCase();
 
-    // 1. Check if host matches configured Supabase project
+    // 1. Check if host matches configured Supabase project exact hostname
     const configuredSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     if (configuredSupabaseUrl) {
       try {
@@ -33,12 +33,7 @@ export function isAllowlistedPosterUrl(rawUrl?: string | null): boolean {
       }
     }
 
-    // 2. Allow any Supabase Storage project CDN (*.supabase.co)
-    if (hostname.endsWith(".supabase.co")) {
-      return true;
-    }
-
-    // 3. Allow explicit approved CDNs
+    // 2. Allow explicit approved CDNs only (no wildcard *.supabase.co)
     if (EXPLICIT_ALLOWED_POSTER_HOSTS.has(hostname)) {
       return true;
     }

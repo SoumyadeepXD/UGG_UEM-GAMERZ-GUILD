@@ -1,7 +1,12 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const autocannon = require("autocannon");
 
-const targetUrl = process.env.TARGET_URL || "http://127.0.0.1:3000";
+const targetUrl = process.env.TARGET_URL;
+if (!targetUrl) {
+  console.error("ERROR: TARGET_URL environment variable is required (e.g. TARGET_URL=http://127.0.0.1:3000 node load-test.js)");
+  process.exit(1);
+}
+
 const connections = parseInt(process.env.CONNECTIONS || "200", 10);
 const duration = parseInt(process.env.DURATION || "10", 10);
 
@@ -17,7 +22,6 @@ const instance = autocannon(
     pipelining: 1,
     headers: {
       "User-Agent": "UGG-Load-Benchmark/1.0",
-      "Connection": "keep-alive",
     },
   },
   (err, result) => {
@@ -35,7 +39,7 @@ const instance = autocannon(
     console.log(`Throughput          : ${(result.throughput.average / (1024 * 1024)).toFixed(2)} MB/s`);
     console.log(`p50 Latency (ms)    : ${result.latency.p50}`);
     console.log(`p90 Latency (ms)    : ${result.latency.p90}`);
-    console.log(`p95 Latency (ms)    : ${result.latency.p97_5 || result.latency.p90}`);
+    console.log(`p97.5 Latency (ms)  : ${result.latency.p97_5 ?? result.latency.p90}`);
     console.log(`p99 Latency (ms)    : ${result.latency.p99}`);
     console.log(`2xx Responses       : ${result["2xx"]}`);
     console.log(`Non-2xx Responses   : ${result.non2xx}`);
@@ -43,8 +47,9 @@ const instance = autocannon(
     console.log(`Timeouts            : ${result.timeouts}`);
     console.log("==========================================");
 
-    const totalFailures = result.non2xx + result.errors + result.timeouts;
-    const errorRate = result.requests.total > 0 ? (totalFailures / (result.requests.total + totalFailures)) * 100 : 0;
+    const totalRequests = result.requests.total;
+    const failedRequests = result.non2xx + result.errors + result.timeouts;
+    const errorRate = totalRequests > 0 ? (failedRequests / totalRequests) * 100 : 0;
     console.log(`Error Rate          : ${errorRate.toFixed(2)}%`);
 
     if (errorRate > 1.0) {

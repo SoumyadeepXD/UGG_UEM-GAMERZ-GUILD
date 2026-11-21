@@ -70,126 +70,49 @@ create policy "Public visitors can view published tournaments"
   for select
   using (status in ('active', 'upcoming', 'completed'));
 
--- Zero public write: public insert/update/delete are blocked by default RLS deny.
-
--- Admin write policy: Only authenticated coordinators can insert, update, or delete
+-- Admin write policy: Only authenticated admins (checked via JWT app_metadata.role) can insert, update, or delete
+drop policy if exists "Admins can manage tournaments" on public.tournaments;
 drop policy if exists "Coordinators can manage tournaments" on public.tournaments;
-create policy "Coordinators can manage tournaments"
+create policy "Admins can manage tournaments"
   on public.tournaments
   for all
   to authenticated
-  using (
-    (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
-    or exists (
-      select 1 from auth.users
-      where auth.users.id = auth.uid()
-      and auth.users.email in ('gamerzguild@uem.edu.in', 'coordinator@uem.edu.in')
-    )
-  )
-  with check (
-    (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
-    or exists (
-      select 1 from auth.users
-      where auth.users.id = auth.uid()
-      and auth.users.email in ('gamerzguild@uem.edu.in', 'coordinator@uem.edu.in')
-    )
-  );
+  using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 -- 6. RLS Policies for Admin Audit Logs:
 -- Public CANNOT view audit logs.
--- Only authenticated coordinators can view audit logs:
+-- Only authenticated admins can view audit logs
+drop policy if exists "Admins can view audit logs" on public.admin_audit_logs;
 drop policy if exists "Coordinators can view audit logs" on public.admin_audit_logs;
-create policy "Coordinators can view audit logs"
+create policy "Admins can view audit logs"
   on public.admin_audit_logs
   for select
   to authenticated
-  using (
-    (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
-    or exists (
-      select 1 from auth.users
-      where auth.users.id = auth.uid()
-      and auth.users.email in ('gamerzguild@uem.edu.in', 'coordinator@uem.edu.in')
-    )
-  );
+  using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
--- Service role or authenticated coordinator can insert audit logs
+-- Admins can insert audit logs
+drop policy if exists "Admins can insert audit logs" on public.admin_audit_logs;
 drop policy if exists "Service role can insert audit logs" on public.admin_audit_logs;
-create policy "Service role can insert audit logs"
+create policy "Admins can insert audit logs"
   on public.admin_audit_logs
   for insert
   to authenticated
-  with check (true);
+  with check ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
--- 7. Seed Initial Tournaments (If table is empty)
-insert into public.tournaments (
-  id, title, game, poster_url, date, time, prize_pool, format, platform, entry_fee, description, form_url, status, registered_teams, max_teams
-) values 
-  (
-    'ugg-val-2026',
-    'Valorant: Clash of Radiants',
-    'Valorant',
-    'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1200&auto=format&fit=crop',
-    'Oct 18 - 20, 2026',
-    '6:00 PM IST',
-    '₹10,000 + UGG Trophy',
-    '5v5 Standard Tournament',
-    'PC (Mumbai Servers)',
-    'Free for UEMK Students',
-    'The premier collegiate Valorant championship. Assemble your 5-stack and battle across Ascent, Haven, and Bind for ultimate college bragging rights.',
-    'https://docs.google.com/forms/d/e/1FAIpQLSc_dummy_valorant_form/viewform',
-    'active',
-    18,
-    32
-  ),
-  (
-    'ugg-bgmi-2026',
-    'BGMI Campus Warfare Season 3',
-    'BGMI',
-    'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=1200&auto=format&fit=crop',
-    'Nov 02 - 04, 2026',
-    '7:30 PM IST',
-    '₹8,000 + Winner Medals',
-    'Squad TPP Battle Royale',
-    'Mobile / Tablet',
-    'Free',
-    'Drop into Erangel, Miramar, and Sanhok. 4-player squads compete across 6 high-stakes custom rooms. Kill points + placement points determine the victor.',
-    'https://docs.google.com/forms/d/e/1FAIpQLSc_dummy_bgmi_form/viewform',
-    'active',
-    22,
-    25
-  ),
-  (
-    'ugg-fc25-2026',
-    'EA FC 25 Kickoff Championship',
-    'EA Sports FC 25',
-    'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=1200&auto=format&fit=crop',
-    'Nov 15, 2026',
-    '3:00 PM IST (LAN)',
-    '₹5,000 + Gaming Headset',
-    '1v1 Single Knockout (LAN)',
-    'PS5 / PC Controllers',
-    'Free',
-    'In-person LAN showdown at the UEMK Campus Esports Arena. 6-minute halves, tactical defending, pure skill. Bring your best starting 11.',
-    'https://docs.google.com/forms/d/e/1FAIpQLSc_dummy_eafc_form/viewform',
-    'upcoming',
-    12,
-    32
-  )
-on conflict (id) do nothing;
-
--- 8. Object Storage Setup for Tournament Posters
--- Creates public 'posters' bucket with 5MB size limit and image-only MIME restriction
+-- 7. Object Storage Setup for Tournament Posters
+-- Creates public 'posters' bucket with 4MB size limit and image-only MIME restriction
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
   'posters',
   'posters',
   true,
-  5242880, -- 5 MB in bytes
+  4194304, -- 4 MB in bytes (Vercel payload constraint)
   array['image/jpeg', 'image/png', 'image/webp', 'image/avif']
 )
 on conflict (id) do update set
   public = true,
-  file_size_limit = 5242880,
+  file_size_limit = 4194304,
   allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
 
 -- Storage RLS: Public Read for Posters
@@ -197,47 +120,3 @@ drop policy if exists "Public visitors can view tournament posters" on storage.o
 create policy "Public visitors can view tournament posters"
   on storage.objects for select
   using (bucket_id = 'posters');
-
--- Storage RLS: Only authenticated coordinators can upload posters
-drop policy if exists "Coordinators can upload tournament posters" on storage.objects;
-create policy "Coordinators can upload tournament posters"
-  on storage.objects for insert
-  to authenticated
-  with check (
-    bucket_id = 'posters'
-    and (
-      (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
-      or exists (
-        select 1 from auth.users
-        where auth.users.id = auth.uid()
-        and auth.users.email in ('gamerzguild@uem.edu.in', 'coordinator@uem.edu.in')
-      )
-    )
-  );
-
--- Storage RLS: Only authenticated coordinators can delete/manage posters
-drop policy if exists "Coordinators can manage tournament posters" on storage.objects;
-create policy "Coordinators can manage tournament posters"
-  on storage.objects for delete
-  to authenticated
-  using (
-    bucket_id = 'posters'
-    and (
-      (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
-      or exists (
-        select 1 from auth.users
-        where auth.users.id = auth.uid()
-        and auth.users.email in ('gamerzguild@uem.edu.in', 'coordinator@uem.edu.in')
-      )
-    )
-  );
-
--- ==============================================================================
--- MANDATORY ADMIN AUTH CONFIGURATION IN SUPABASE DASHBOARD:
--- 1. Go to Authentication -> Providers -> Email
--- 2. Turn OFF "Enable Signups" (Disables public sign-ups so arbitrary users cannot register)
--- 3. Turn ON "Confirm email"
--- 4. To invite an administrator, go to Authentication -> Users -> "Invite User"
---    and invite the coordinator email (e.g. gamerzguild@uem.edu.in).
--- 5. In SQL Editor or Table Editor, assign app_metadata: {"role": "admin"} to that user.
--- ==============================================================================

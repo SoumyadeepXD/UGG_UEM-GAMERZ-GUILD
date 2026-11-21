@@ -27,7 +27,7 @@ export default function ErrorBoundary({
           System Glitch Detected
         </h1>
         <p className="text-xs text-gray-400 mb-6 leading-relaxed">
-          An unexpected error interrupted your session. Our esports engineering team has been notified.
+          An unexpected error interrupted your session. Please try refreshing or return to the main arena.
         </p>
 
         {error.digest && (

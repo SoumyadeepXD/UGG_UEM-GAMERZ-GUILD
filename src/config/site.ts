@@ -19,8 +19,11 @@ export const siteConfig = {
     youtube: "https://youtube.com/@dummy-ugg",
     email: "gamerzguild@uem.edu.in",
   },
-  admin: {
-    storageKey: "ugg_tournaments_v1",
-    sheetUrlKey: "ugg_sheet_csv_url",
-  },
+  ticker: [
+    { text: "UEMK GAMERZ GUILD OFFICIAL", tag: "INFO" },
+    { text: "COLLEGIATE ESPORTS BRACKETS & SCRIMS", tag: "ARENA" },
+    { text: "DISCORD COMMUNITY: ACTIVE VOICE & SCRIMS", tag: "SCRIMS" },
+    { text: "VERIFIED TOURNAMENT OPERATIONS", tag: "FAIRPLAY" },
+    { text: "CAMPUS GAMING ECOSYSTEM", tag: "UEMK" },
+  ],
 };

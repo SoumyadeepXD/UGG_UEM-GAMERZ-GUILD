@@ -27,7 +27,7 @@ export default function CommunityHub() {
       link: siteConfig.socials.discord,
       icon: DiscordIcon,
       accentBg: "bg-indigo-500/15 text-indigo-400 border-indigo-500/30",
-      badge: "1,200+ Members",
+      badge: "Voice & Scrims",
     },
     {
       name: "Instagram",

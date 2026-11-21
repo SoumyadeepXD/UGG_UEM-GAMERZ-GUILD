@@ -5,11 +5,10 @@ import { tournamentSchema } from "@/lib/validations/tournament";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
 import { logAdminAction } from "@/lib/audit";
 import { createClient } from "@/lib/supabase/server";
-import { initialTournaments } from "@/data/initialTournaments";
 
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request.headers);
-  const limiter = rateLimit(`admin-get-${ip}`, { max: 60, windowMs: 60000 });
+  const limiter = await rateLimit(`admin-get-${ip}`, { max: 60, windowMs: 60000 });
   if (!limiter.success) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
   }
@@ -26,8 +25,13 @@ export async function GET(request: NextRequest) {
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (error || !data || data.length === 0) {
-      return NextResponse.json({ tournaments: initialTournaments });
+    if (error) {
+      console.error("Error fetching tournaments in admin API:", error.message);
+      return NextResponse.json({ error: "Failed to fetch tournaments" }, { status: 500 });
+    }
+
+    if (!data || data.length === 0) {
+      return NextResponse.json({ tournaments: [] });
     }
 
     const mapped = data.map((item) => ({
@@ -50,14 +54,14 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ tournaments: mapped });
   } catch (err) {
-    console.error("Error fetching tournaments in admin API:", err);
-    return NextResponse.json({ tournaments: initialTournaments });
+    console.error("Exception fetching tournaments in admin API:", err);
+    return NextResponse.json({ error: "Failed to fetch tournaments" }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request.headers);
-  const limiter = rateLimit(`admin-write-${ip}`, { max: 20, windowMs: 60000 });
+  const limiter = await rateLimit(`admin-write-${ip}`, { max: 20, windowMs: 60000 });
   if (!limiter.success) {
     return NextResponse.json(
       { error: "Too many write requests. Please slow down." },
@@ -71,7 +75,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // (a) Verify session and admin email
+  // Verify session and admin role
   const auth = await verifyAdminRequest();
   if (!auth.authorized || !auth.user) {
     return auth.errorResponse!;
@@ -80,7 +84,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // (b) Validate input with Zod
+    // Validate input with Zod
     const parseResult = tournamentSchema.safeParse(body);
     if (!parseResult.success) {
       return NextResponse.json(
@@ -121,13 +125,17 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.warn("Supabase insert warning:", error.message);
+      console.error("Supabase insert error:", error.message);
+      return NextResponse.json(
+        { error: "Failed to save tournament record" },
+        { status: 500 }
+      );
     }
 
-    // (c) Write an audit log row
+    // Write an audit log row
     await logAdminAction({
       actorId: auth.user.id,
-      actorEmail: auth.user.email || "unknown@uem.edu.in",
+      actorEmail: auth.user.email || "admin@ugg.gg",
       action: "CREATE_TOURNAMENT",
       resourceId: tournamentId,
       ipAddress: ip,
@@ -139,7 +147,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // (d) Call revalidatePath for public site and admin
+    // Revalidate paths for on-demand ISR
     revalidatePath("/");
     revalidatePath("/admin");
 
@@ -154,9 +162,9 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("Admin tournament creation handler exception:", err);
     return NextResponse.json(
-      { error: "Failed to create tournament", details: message },
+      { error: "Failed to process tournament creation" },
       { status: 500 }
     );
   }

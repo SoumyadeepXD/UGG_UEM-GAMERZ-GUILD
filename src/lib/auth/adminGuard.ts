@@ -30,24 +30,14 @@ export async function verifyAdminRequest(): Promise<AdminAuthResult> {
       };
     }
 
-    const adminEmails = (process.env.ADMIN_EMAILS || "")
-      .split(",")
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean);
-
-    const userEmail = (user.email || "").toLowerCase();
+    // Sole authorization check: user must have role === "admin" in app_metadata
     const userRole = user.app_metadata?.role;
-
-    // Check if role is admin or email is explicitly allowed
-    const isAuthorized =
-      userRole === "admin" || (adminEmails.length > 0 && adminEmails.includes(userEmail));
-
-    if (!isAuthorized) {
+    if (userRole !== "admin") {
       return {
         authorized: false,
         user,
         errorResponse: NextResponse.json(
-          { error: "Forbidden: Coordinator admin clearance required" },
+          { error: "Forbidden: Admin clearance required" },
           { status: 403 }
         ),
       };

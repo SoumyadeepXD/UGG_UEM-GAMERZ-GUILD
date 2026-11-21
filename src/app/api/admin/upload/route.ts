@@ -6,11 +6,11 @@ import { logAdminAction } from "@/lib/audit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { detectImageMagicBytes } from "@/lib/validations/magicBytes";
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB hard limit
+const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB hard limit (conforms to Vercel Serverless payload limits)
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request.headers);
-  const limiter = rateLimit(`admin-upload-${ip}`, { max: 20, windowMs: 60000 });
+  const limiter = await rateLimit(`admin-upload-${ip}`, { max: 20, windowMs: 60000 });
 
   if (!limiter.success) {
     return NextResponse.json(
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // (a) Verify active session AND coordinator admin authorization
+  // Verify active session AND admin authorization
   const auth = await verifyAdminRequest();
   if (!auth.authorized || !auth.user) {
     return auth.errorResponse!;
@@ -33,8 +33,9 @@ export async function POST(request: NextRequest) {
 
   const adminSupabase = createAdminClient();
   if (!adminSupabase) {
+    console.error("SUPABASE_SERVICE_ROLE_KEY is not configured on the server.");
     return NextResponse.json(
-      { error: "Server storage credentials (SUPABASE_SERVICE_ROLE_KEY) not configured." },
+      { error: "Storage service unavailable" },
       { status: 500 }
     );
   }
@@ -50,11 +51,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. File size enforcement (<= 5MB)
+    // 1. File size enforcement (<= 4MB)
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         {
-          error: `File exceeds the 5MB size limit (${(file.size / (1024 * 1024)).toFixed(2)} MB uploaded).`,
+          error: `File exceeds the 4MB limit (${(file.size / (1024 * 1024)).toFixed(2)} MB uploaded).`,
         },
         { status: 400 }
       );
@@ -63,12 +64,12 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // 2. Real Content-Type inspection via binary magic bytes (reject all executable/script polyglots)
+    // 2. Real Content-Type inspection via binary magic bytes
     const detected = detectImageMagicBytes(buffer);
     if (!detected) {
       return NextResponse.json(
         {
-          error: "Invalid file signature. File content is not a valid JPEG, PNG, WebP, or AVIF image.",
+          error: "Invalid file signature. File content must be a valid JPEG, PNG, WebP, or AVIF image.",
         },
         { status: 400 }
       );
@@ -88,11 +89,9 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
+      console.error("Supabase Storage upload error:", uploadError.message);
       return NextResponse.json(
-        {
-          error: "Failed to upload poster to storage bucket",
-          details: uploadError.message,
-        },
+        { error: "Failed to upload poster image to storage bucket" },
         { status: 500 }
       );
     }
@@ -105,7 +104,7 @@ export async function POST(request: NextRequest) {
     // 6. Record Immutable Audit Log
     await logAdminAction({
       actorId: auth.user.id,
-      actorEmail: auth.user.email || "unknown@uem.edu.in",
+      actorEmail: auth.user.email || "admin@ugg.gg",
       action: "UPLOAD_POSTER",
       resourceId: fileName,
       ipAddress: ip,
@@ -133,9 +132,9 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Upload processing failed";
+    console.error("Exception during poster upload processing:", err);
     return NextResponse.json(
-      { error: "Internal server error during upload", details: message },
+      { error: "Internal server error during upload" },
       { status: 500 }
     );
   }

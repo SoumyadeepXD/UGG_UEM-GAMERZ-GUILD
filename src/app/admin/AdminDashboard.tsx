@@ -67,9 +67,9 @@ export default function AdminDashboard({
 
     setUploadError(null);
 
-    // Client-side quick check (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError("File exceeds 5MB limit. Please upload an image under 5MB.");
+    // Client-side quick check (4MB limit matches Vercel serverless body constraints)
+    if (file.size > 4 * 1024 * 1024) {
+      setUploadError("File exceeds 4MB limit. Please upload an image under 4MB.");
       return;
     }
 
@@ -430,7 +430,7 @@ export default function AdminDashboard({
                     ) : (
                       <>
                         <Upload className="w-3.5 h-3.5 text-[#ff1e38]" />
-                        <span>Upload File (Max 5MB)</span>
+                        <span>Upload File (Max 4MB)</span>
                       </>
                     )}
                   </label>
@@ -457,7 +457,7 @@ export default function AdminDashboard({
                 {!isPosterAllowlisted && formData.posterUrl.length > 0 && (
                   <p className="text-[10px] text-amber-400 mt-1 flex items-center gap-1">
                     <AlertCircle className="w-3 h-3 shrink-0" />
-                    <span>Host not in allowlist. Posters must come from Supabase Storage CDN (*.supabase.co) or images.unsplash.com.</span>
+                    <span>Host not in allowlist. Posters must come from this project&apos;s Supabase Storage CDN or images.unsplash.com.</span>
                   </p>
                 )}
 
@@ -588,8 +588,14 @@ export default function AdminDashboard({
                   )}
 
                   <div className="absolute top-3 left-3 z-10">
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-black/75 backdrop-blur-md text-emerald-400 border border-emerald-500/40">
-                      {formData.status === "active" ? "Registration Live" : "Upcoming"}
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-black/75 backdrop-blur-md border">
+                      {formData.status === "active" ? (
+                        <span className="text-emerald-400">Registration Live</span>
+                      ) : formData.status === "upcoming" ? (
+                        <span className="text-amber-400">Upcoming</span>
+                      ) : (
+                        <span className="text-gray-300">Registration Closed</span>
+                      )}
                     </span>
                   </div>
                   <div className="absolute top-3 right-3 z-10">
@@ -629,10 +635,16 @@ export default function AdminDashboard({
                     </div>
                   </div>
 
-                  <div className="w-full py-2.5 rounded-lg font-bold uppercase tracking-wider text-[11px] text-white bg-gradient-to-r from-[#ff1e38] to-[#b80d22] text-center flex items-center justify-center gap-1.5">
-                    <span>Register via Google Form</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </div>
+                  {formData.status === "completed" ? (
+                    <div className="w-full min-h-[44px] py-2.5 rounded-lg font-bold uppercase tracking-wider text-[11px] text-gray-400 bg-white/[0.04] border border-white/10 text-center flex items-center justify-center">
+                      Registration Closed
+                    </div>
+                  ) : (
+                    <div className="w-full min-h-[44px] py-2.5 rounded-lg font-bold uppercase tracking-wider text-[11px] text-white bg-gradient-to-r from-[#ff1e38] to-[#b80d22] text-center flex items-center justify-center gap-1.5">
+                      <span>Register via Google Form</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

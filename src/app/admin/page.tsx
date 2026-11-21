@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { initialTournaments } from "@/data/initialTournaments";
+import { Tournament } from "@/types/tournament";
 import AdminDashboard from "./AdminDashboard";
 
 /**
@@ -40,23 +40,14 @@ export default async function AdminPage() {
     redirect("/admin/login");
   }
 
-  // Server-side Admin Authorization Guard
-  const adminEmails = (process.env.ADMIN_EMAILS || "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-
-  const userEmail = (user.email || "").toLowerCase();
+  // Server-side Admin Authorization Guard: strictly verify app_metadata.role === "admin"
   const userRole = user.app_metadata?.role;
-  const isAuthorized =
-    userRole === "admin" || (adminEmails.length > 0 && adminEmails.includes(userEmail));
-
-  if (!isAuthorized) {
+  if (userRole !== "admin") {
     redirect("/admin/unauthorized");
   }
 
-  // Load active tournaments from database for authorized coordinator only
-  let tournaments = initialTournaments;
+  // Load active tournaments from database for authorized admin only (no initialTournaments fallback)
+  let tournaments: Tournament[] = [];
   try {
     const { data: dbTournaments, error: dbError } = await supabase
       .from("tournaments")
@@ -83,7 +74,7 @@ export default async function AdminPage() {
       }));
     }
   } catch (err) {
-    console.warn("Could not load tournaments from database, using initial fixtures:", err);
+    console.error("Could not load tournaments from database in admin portal:", err);
   }
 
   return (

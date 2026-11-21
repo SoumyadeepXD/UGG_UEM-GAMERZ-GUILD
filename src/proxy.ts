@@ -17,7 +17,7 @@ export default async function proxy(request: NextRequest) {
   const isUnauthorizedPage = pathname === "/admin/unauthorized";
   const isAdminApiRoute = pathname.startsWith("/api/admin");
 
-  // If Supabase environment variables are not yet configured,
+  // If Supabase environment variables are not configured,
   // ensure admin routes cannot be accessed anonymously
   if (!supabaseUrl || !supabaseAnonKey) {
     if (isAdminRoute && !isLoginPage) {
@@ -25,8 +25,8 @@ export default async function proxy(request: NextRequest) {
     }
     if (isAdminApiRoute) {
       return NextResponse.json(
-        { error: "Server authentication not configured" },
-        { status: 503 }
+        { error: "Unauthorized: Active admin session required" },
+        { status: 401 }
       );
     }
     return response;
@@ -63,24 +63,18 @@ export default async function proxy(request: NextRequest) {
       return NextResponse.redirect(redirectUrl);
     }
 
-    const adminEmails = (process.env.ADMIN_EMAILS || "")
-      .split(",")
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean);
-
-    const userEmail = (user.email || "").toLowerCase();
     const userRole = user.app_metadata?.role;
-    const isAuthorized =
-      userRole === "admin" || (adminEmails.length > 0 && adminEmails.includes(userEmail));
-
-    if (!isAuthorized) {
+    if (userRole !== "admin") {
       return NextResponse.redirect(new URL("/admin/unauthorized", request.url));
     }
   }
 
   // If already logged in as admin, visiting login redirects to /admin
   if (isLoginPage && user) {
-    return NextResponse.redirect(new URL("/admin", request.url));
+    const userRole = user.app_metadata?.role;
+    if (userRole === "admin") {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
   }
 
   // API protection
@@ -92,19 +86,10 @@ export default async function proxy(request: NextRequest) {
       );
     }
 
-    const adminEmails = (process.env.ADMIN_EMAILS || "")
-      .split(",")
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean);
-
-    const userEmail = (user.email || "").toLowerCase();
     const userRole = user.app_metadata?.role;
-    const isAuthorized =
-      userRole === "admin" || (adminEmails.length > 0 && adminEmails.includes(userEmail));
-
-    if (!isAuthorized) {
+    if (userRole !== "admin") {
       return NextResponse.json(
-        { error: "Forbidden: Coordinator admin role required" },
+        { error: "Forbidden: Admin role required" },
         { status: 403 }
       );
     }

@@ -1,31 +1,44 @@
 import { NextResponse } from "next/server";
-
-const START_TIME = Date.now();
+import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const uptimeSeconds = Math.floor((Date.now() - START_TIME) / 1000);
+  const timestamp = new Date().toISOString();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  const status = {
-    status: "healthy",
-    uptime: `${uptimeSeconds}s`,
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || "development",
-    services: {
-      supabaseConfigured: Boolean(
-        process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      ),
-      storageConfigured: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
-      edgeCache: "active",
-    },
-    version: "1.0.0",
-  };
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return NextResponse.json(
+      { status: "unhealthy", timestamp },
+      { status: 503, headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
+  }
 
-  return NextResponse.json(status, {
-    status: 200,
-    headers: {
-      "Cache-Control": "no-store, max-age=0",
-    },
-  });
+  try {
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false },
+    });
+
+    const { error } = await supabase.from("tournaments").select("id").limit(1);
+
+    if (error) {
+      console.error("Health check DB ping error:", error.message);
+      return NextResponse.json(
+        { status: "unhealthy", timestamp },
+        { status: 503, headers: { "Cache-Control": "no-store, max-age=0" } }
+      );
+    }
+
+    return NextResponse.json(
+      { status: "healthy", timestamp },
+      { status: 200, headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
+  } catch (err) {
+    console.error("Health check unexpected error:", err);
+    return NextResponse.json(
+      { status: "unhealthy", timestamp },
+      { status: 503, headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
+  }
 }

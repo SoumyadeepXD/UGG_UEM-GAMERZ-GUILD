@@ -1,6 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
 import { Tournament } from "@/types/tournament";
-import { initialTournaments } from "@/data/initialTournaments";
 
 /**
  * Creates a public unauthenticated Supabase client.
@@ -24,26 +23,26 @@ function getPublicSupabase() {
 
 /**
  * Server-side static query to fetch published tournaments for public pages.
- * Resilient against database outages: falls back to static seed data if Supabase is offline.
+ * Returns empty array when database is uninitialized or tournaments table is empty.
  */
 export async function getPublishedTournaments(): Promise<Tournament[]> {
   try {
     const supabase = getPublicSupabase();
     if (!supabase) {
-      return initialTournaments;
+      return [];
     }
 
     const { data, error } = await supabase
       .from("tournaments")
       .select("*")
-      .in("status", ["active", "upcoming"])
+      .in("status", ["active", "upcoming", "completed"])
       .order("created_at", { ascending: false });
 
     if (error || !data || data.length === 0) {
       if (error) {
-        console.warn("Supabase fetch notice (falling back to static seed):", error.message);
+        console.error("Supabase fetch error for published tournaments:", error.message);
       }
-      return initialTournaments;
+      return [];
     }
 
     // Map Postgres snake_case column names to TypeScript Tournament interface
@@ -65,8 +64,8 @@ export async function getPublishedTournaments(): Promise<Tournament[]> {
       maxTeams: item.max_teams,
     }));
   } catch (err) {
-    console.warn("Database connection issue during generation; serving static fallback:", err);
-    return initialTournaments;
+    console.error("Database connection issue during generation:", err);
+    return [];
   }
 }
 

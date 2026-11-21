@@ -10,6 +10,7 @@
     "test": "npm run test:unit",
     "test:unit": "tsx --test tests/unit/*.test.ts",
     "test:e2e": "playwright test",
+    "seed": "tsx scripts/seed.ts",
     "benchmark": "node load-test.js"
   },
   "dependencies": {

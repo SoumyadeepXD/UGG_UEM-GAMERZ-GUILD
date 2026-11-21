@@ -2,17 +2,12 @@ import { z } from "zod";
 import { isAllowlistedPosterUrl, isValidRegistrationUrl } from "./urlAllowlist";
 
 /**
- * Strips HTML tags, script vectors, and dangerous characters from user input text.
+ * Trims input text without destructive regex replacements.
+ * Length limits are enforced by Zod and output is safely rendered via React JSX text nodes.
  */
-export function sanitizeText(input: string): string {
+export function trimText(input: string): string {
   if (!input) return "";
-  return input
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
-    .replace(/<[^>]+>/g, "") // strip remaining HTML tags
-    .replace(/javascript:/gi, "")
-    .replace(/data:\s*text\/html/gi, "")
-    .trim();
+  return input.trim();
 }
 
 /**
@@ -34,7 +29,7 @@ const posterUrlSchema = z
   .trim()
   .url({ message: "Poster must be a valid URL" })
   .refine((url) => isAllowlistedPosterUrl(url), {
-    message: "Poster URL host is not in the approved CDN allowlist (authorized hosts: *.supabase.co, images.unsplash.com)",
+    message: "Poster URL host is not in the approved CDN allowlist (authorized hosts: Supabase project CDN, images.unsplash.com)",
   });
 
 export const tournamentSchema = z.object({
@@ -52,60 +47,60 @@ export const tournamentSchema = z.object({
     .trim()
     .min(3, { message: "Title must be at least 3 characters" })
     .max(100, { message: "Title cannot exceed 100 characters" })
-    .transform(sanitizeText),
+    .transform(trimText),
   game: z
     .string()
     .trim()
     .min(2, { message: "Game name must be at least 2 characters" })
     .max(50, { message: "Game name cannot exceed 50 characters" })
-    .transform(sanitizeText),
+    .transform(trimText),
   posterUrl: posterUrlSchema,
   date: z
     .string()
     .trim()
     .min(3, { message: "Date must be at least 3 characters" })
     .max(60, { message: "Date cannot exceed 60 characters" })
-    .transform(sanitizeText),
+    .transform(trimText),
   time: z
     .string()
     .trim()
     .max(40, { message: "Time cannot exceed 40 characters" })
-    .transform(sanitizeText)
+    .transform(trimText)
     .optional()
     .default("6:00 PM IST"),
   prizePool: z
     .string()
     .trim()
     .max(60, { message: "Prize pool cannot exceed 60 characters" })
-    .transform(sanitizeText)
+    .transform(trimText)
     .optional()
     .default("Trophies & Glory"),
   format: z
     .string()
     .trim()
     .max(60, { message: "Format cannot exceed 60 characters" })
-    .transform(sanitizeText)
+    .transform(trimText)
     .optional()
     .default("Open Bracket"),
   platform: z
     .string()
     .trim()
     .max(50, { message: "Platform cannot exceed 50 characters" })
-    .transform(sanitizeText)
+    .transform(trimText)
     .optional()
     .default("Cross-Platform"),
   entryFee: z
     .string()
     .trim()
     .max(40, { message: "Entry fee cannot exceed 40 characters" })
-    .transform(sanitizeText)
+    .transform(trimText)
     .optional()
     .default("Free"),
   description: z
     .string()
     .trim()
     .max(1000, { message: "Description cannot exceed 1,000 characters" })
-    .transform(sanitizeText)
+    .transform(trimText)
     .optional()
     .default(""),
   formUrl: registrationUrlSchema,

@@ -1,15 +1,14 @@
 import React from "react";
-import { Flame, Shield, Trophy, Radio, Terminal, Gamepad2 } from "lucide-react";
+import { siteConfig } from "@/config/site";
+import { Terminal, Trophy, Radio, Shield, Gamepad2 } from "lucide-react";
+
+const ICON_MAP = [Terminal, Trophy, Radio, Shield, Gamepad2];
 
 export default function CyberTicker() {
-  const items = [
-    { icon: Terminal, text: "UEMK GAMERZ GUILD OFFICIAL", color: "text-[#ff1e38]" },
-    { icon: Flame, text: "LIVE REGISTRATION: VALORANT RADIANT CUP", color: "text-amber-400" },
-    { icon: Trophy, text: "PRIZE VAULT: ₹50,000+ AWARDED", color: "text-yellow-400" },
-    { icon: Gamepad2, text: "BGMI CAMPUS WARFARE // SQUAD TPP", color: "text-sky-400" },
-    { icon: Radio, text: "DISCORD VOICE SCRIMS: ACTIVE 24/7", color: "text-indigo-400" },
-    { icon: Shield, text: "VERIFIED COLLEGIATE BRACKETS", color: "text-emerald-400" },
-  ];
+  const items = siteConfig.ticker.map((item, index) => ({
+    icon: ICON_MAP[index % ICON_MAP.length],
+    text: item.text,
+  }));
 
   return (
     <div className="relative w-full bg-[#08090f] border-y border-white/[0.08] overflow-hidden py-2.5 z-20">
@@ -25,7 +24,7 @@ export default function CyberTicker() {
               key={idx}
               className="inline-flex items-center gap-2 mx-4 sm:mx-6 text-[10px] sm:text-xs font-bold tracking-wider text-gray-300 uppercase select-none"
             >
-              <Icon className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${item.color} shrink-0`} />
+              <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#ff1e38] shrink-0" />
               <span>{item.text}</span>
               <span className="text-white/20 ml-3 sm:ml-4 font-black">•</span>
             </div>
