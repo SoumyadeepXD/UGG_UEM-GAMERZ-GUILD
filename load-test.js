@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const autocannon = require("autocannon");
 
-const targetUrl = process.env.TARGET_URL || "http://localhost:3000";
+const targetUrl = process.env.TARGET_URL || "http://127.0.0.1:3000";
 const connections = parseInt(process.env.CONNECTIONS || "200", 10);
 const duration = parseInt(process.env.DURATION || "10", 10);
 
