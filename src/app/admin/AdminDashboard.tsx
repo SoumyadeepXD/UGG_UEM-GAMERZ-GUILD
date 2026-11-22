@@ -36,11 +36,13 @@ import {
 interface AdminDashboardProps {
   userEmail: string;
   initialTournaments: Tournament[];
+  initialContent?: UggContent;
 }
 
 export default function AdminDashboard({
   userEmail,
   initialTournaments,
+  initialContent,
 }: AdminDashboardProps) {
   const [activePortalTab, setActivePortalTab] = useState<"tournaments" | "content" | "backup">("tournaments");
   const [tournaments, setTournaments] = useState<Tournament[]>(initialTournaments);
@@ -246,26 +248,48 @@ export default function AdminDashboard({
   const handleImportSiteContent = (f?: File | null) => {
     if (!f) return;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
         const imported = merge(DEF, JSON.parse(reader.result as string)) as UggContent;
+        const res = await fetch("/api/admin/content", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: imported }),
+        });
+        if (!res.ok) {
+          const d = await res.json().catch(() => null);
+          throw new Error(d?.error || "Failed to persist to database");
+        }
         save(imported);
         cyberSound.playLaunch();
-        setSaveSuccessMessage("Website content imported and synced to live site!");
+        setSaveSuccessMessage("Website content imported and published globally to live site!");
         setTimeout(() => setSaveSuccessMessage(null), 4000);
-      } catch {
-        alert("Invalid content JSON file.");
+      } catch (e: unknown) {
+        alert("Import failed: " + (e instanceof Error ? e.message : String(e)));
       }
     };
     reader.readAsText(f);
   };
 
-  const handleFactoryResetSiteContent = () => {
-    if (!confirm("Reset ALL website content to default settings? Custom edits will be reverted.")) return;
-    save(structuredClone(DEF));
-    cyberSound.playClick();
-    setSaveSuccessMessage("All website content has been reset to defaults!");
-    setTimeout(() => setSaveSuccessMessage(null), 4000);
+  const handleFactoryResetSiteContent = async () => {
+    if (!confirm("Reset ALL website content to default settings? Custom edits will be reverted globally.")) return;
+    try {
+      const res = await fetch("/api/admin/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: DEF }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => null);
+        throw new Error(d?.error || "Failed to reset database");
+      }
+      save(structuredClone(DEF));
+      cyberSound.playClick();
+      setSaveSuccessMessage("All website content has been reset to defaults globally!");
+      setTimeout(() => setSaveSuccessMessage(null), 4000);
+    } catch (e: unknown) {
+      alert("Reset failed: " + (e instanceof Error ? e.message : String(e)));
+    }
   };
 
   return (
@@ -875,7 +899,7 @@ export default function AdminDashboard({
         {/* TAB 2: WEBSITE CONTENT CMS */}
         {activePortalTab === "content" && (
           <section>
-            <SiteContentEditor />
+            <SiteContentEditor initialContent={initialContent} />
           </section>
         )}
 

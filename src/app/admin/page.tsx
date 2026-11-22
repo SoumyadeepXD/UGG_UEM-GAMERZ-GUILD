@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { Tournament } from "@/types/tournament";
+import { getSiteContent } from "@/lib/siteContent";
 import AdminDashboard from "./AdminDashboard";
 
 /**
@@ -68,13 +69,21 @@ export default async function AdminPage() {
     redirect("/admin/unauthorized");
   }
 
-  // Load active tournaments from database for authorized admin only (no initialTournaments fallback)
+  // Load active tournaments and site content from database for authorized admin
   let tournaments: Tournament[] = [];
+  let siteContent = undefined;
+
   try {
-    const { data: dbTournaments, error: dbError } = await supabase
-      .from("tournaments")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const [tournamentsRes, contentRes] = await Promise.all([
+      supabase
+        .from("tournaments")
+        .select("*")
+        .order("created_at", { ascending: false }),
+      getSiteContent(),
+    ]);
+
+    siteContent = contentRes;
+    const { data: dbTournaments, error: dbError } = tournamentsRes;
 
     if (!dbError && dbTournaments && dbTournaments.length > 0) {
       tournaments = dbTournaments.map((t: DbTournamentRow) => ({
@@ -96,13 +105,14 @@ export default async function AdminPage() {
       }));
     }
   } catch (err) {
-    console.error("Could not load tournaments from database in admin portal:", err);
+    console.error("Could not load database records in admin portal:", err);
   }
 
   return (
     <AdminDashboard
       userEmail={user.email || "coordinator@uem.edu.in"}
       initialTournaments={tournaments}
+      initialContent={siteContent}
     />
   );
 }

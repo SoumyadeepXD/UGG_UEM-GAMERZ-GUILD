@@ -5,7 +5,8 @@ export type AuditAction =
   | "UPDATE_TOURNAMENT"
   | "DELETE_TOURNAMENT"
   | "UPDATE_STATUS"
-  | "UPLOAD_POSTER";
+  | "UPLOAD_POSTER"
+  | "UPDATE_SITE_CONTENT";
 
 export interface AuditLogEntry {
   actorId: string;

@@ -79,6 +79,13 @@ test.describe("UGG Security & Public Interface Suite", () => {
       },
     });
     expect(uploadRes.status()).toBe(401);
+
+    // POST /api/admin/content
+    const contentRes = await request.post("/api/admin/content", {
+      headers: sameOriginHeaders,
+      data: { content: { brand: { name: "Hacked" } } },
+    });
+    expect(contentRes.status()).toBe(401);
   });
 
   // 4. Admin-Authenticated File Upload Security

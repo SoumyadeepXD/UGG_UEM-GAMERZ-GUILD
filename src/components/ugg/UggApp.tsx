@@ -606,10 +606,11 @@ function EventsSection({ c }: EventsSectionProps) {
 /* ---------- main application component ---------- */
 interface UggAppProps {
   initialTournaments?: Tournament[];
+  initialContent?: UggContent;
 }
 
-function getInitialContent(initialTournaments?: Tournament[]): UggContent {
-  const base = structuredClone(DEF);
+function getInitialContent(initialTournaments?: Tournament[], initialContent?: UggContent): UggContent {
+  const base = initialContent ? structuredClone(initialContent) : structuredClone(DEF);
   if (initialTournaments && initialTournaments.length > 0) {
     const dbItems = initialTournaments.map((t) => ({
       status: t.status === 'active' ? 'live' : t.status === 'upcoming' ? 'upcoming' : t.status === 'completed' ? 'completed' : 'registering',
@@ -647,8 +648,8 @@ function SponsorItem({ x }: { x: { name: string; logo?: string; url?: string } }
   );
 }
 
-export default function UggApp({ initialTournaments }: UggAppProps) {
-  const baseContent = useMemo(() => getInitialContent(initialTournaments), [initialTournaments]);
+export default function UggApp({ initialTournaments, initialContent }: UggAppProps) {
+  const baseContent = useMemo(() => getInitialContent(initialTournaments, initialContent), [initialTournaments, initialContent]);
   const storageRaw = useSyncExternalStore(subscribeStorage, getClientStorage, getServerStorage);
 
   const savedContent = useMemo(() => {
