@@ -2,8 +2,9 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback, useSyncExternalStore, useMemo } from 'react';
-import AdminDrawer from './AdminDrawer';
-import { save, sha, merge, UggContent } from '@/lib/ugg/util';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { merge, UggContent } from '@/lib/ugg/util';
 import { DEF } from '@/data/uggContent';
 import type { Tournament } from '@/types/tournament';
 
@@ -30,44 +31,15 @@ const ext = (u?: string) => (/^https?:/.test(u || '') ? { target: '_blank', rel:
 const pad = (i: number) => String(i + 1).padStart(2, '0');
 const calm = () => (typeof window !== 'undefined' ? window.matchMedia('(prefers-reduced-motion:reduce)').matches : false);
 
-/* ---------- smooth wheel scrolling (desktop only) ---------- */
-let goTo = (t: HTMLElement) => t.scrollIntoView({ behavior: 'smooth' });
+const goTo = (t: HTMLElement) => {
+  if (calm()) {
+    t.scrollIntoView();
+  } else {
+    t.scrollIntoView({ behavior: 'smooth' });
+  }
+};
 
-function useSmoothScroll() {
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (calm() || window.matchMedia('(pointer:coarse)').matches) return;
-    let cur = window.scrollY, tgt = window.scrollY, run = false;
-    const max = () => document.documentElement.scrollHeight - window.innerHeight;
-    const tick = () => {
-      cur += (tgt - cur) * 0.085;
-      if (Math.abs(tgt - cur) < 0.4) { cur = tgt; run = false; }
-      window.scrollTo(0, cur);
-      if (run) requestAnimationFrame(tick);
-    };
-    const go = (y: number) => {
-      if (!run) cur = window.scrollY;
-      tgt = Math.max(0, Math.min(max(), y));
-      if (!run) { run = true; requestAnimationFrame(tick); }
-    };
-    const wheel = (e: WheelEvent) => {
-      if (e.ctrlKey || (e.target as HTMLElement)?.closest?.('#adm')) return;
-      e.preventDefault();
-      go((run ? tgt : window.scrollY) + e.deltaY * (e.deltaMode === 1 ? 32 : 1));
-    };
-    const sc = () => { if (!run) cur = tgt = window.scrollY; };
-    window.addEventListener('wheel', wheel, { passive: false });
-    window.addEventListener('scroll', sc);
-    goTo = (t: HTMLElement) => go(t.getBoundingClientRect().top + window.scrollY);
-    return () => {
-      window.removeEventListener('wheel', wheel);
-      window.removeEventListener('scroll', sc);
-      goTo = (t: HTMLElement) => t.scrollIntoView({ behavior: 'smooth' });
-    };
-  }, []);
-}
-
-/* ---------- reveal on scroll (replays when scrolling back up) ---------- */
+/* ---------- reveal on scroll ---------- */
 interface RProps extends React.HTMLAttributes<HTMLElement> {
   as?: React.ElementType;
   className?: string;
@@ -83,15 +55,20 @@ const R = React.forwardRef<HTMLElement, RProps>(function R(
   forwardedRef
 ) {
   const localRef = useRef<HTMLElement>(null);
-  const [on, set] = useState(false);
+  const [on, set] = useState(() => calm());
 
   useEffect(() => {
     const el = localRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => {
-      if (e.intersectionRatio >= 0.15) set(true);
-      else if (e.intersectionRatio === 0) set(false);
-    }, { threshold: [0, 0.15] });
+    if (!el || calm()) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          set(true);
+          io.unobserve(el);
+        }
+      },
+      { threshold: 0.1 }
+    );
     io.observe(el);
     return () => io.disconnect();
   }, []);
@@ -124,21 +101,27 @@ function Num({ v }: { v: string | number }) {
     if (!el) return;
     const m = String(v).match(/^(\D*)(\d+)(.*)$/);
     if (!m) return;
+    if (calm()) {
+      el.textContent = String(v);
+      return;
+    }
     let raf: number;
-    const io = new IntersectionObserver(([e]) => {
-      cancelAnimationFrame(raf);
-      if (e.intersectionRatio >= 0.15) {
-        const t0 = performance.now();
-        const f = (n: number) => {
-          const p = Math.min(1, (n - t0) / 1400);
-          el.textContent = m[1] + Math.round(+m[2] * (1 - Math.pow(1 - p, 3))) + m[3];
-          if (p < 1) raf = requestAnimationFrame(f);
-        };
-        raf = requestAnimationFrame(f);
-      } else if (e.intersectionRatio === 0) {
-        el.textContent = m[1] + '0' + m[3];
-      }
-    }, { threshold: [0, 0.15] });
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          io.unobserve(el);
+          const t0 = performance.now();
+          const target = +m[2];
+          const f = (n: number) => {
+            const p = Math.min(1, (n - t0) / 1000);
+            el.textContent = m[1] + Math.round(target * (1 - Math.pow(1 - p, 3))) + m[3];
+            if (p < 1) raf = requestAnimationFrame(f);
+          };
+          raf = requestAnimationFrame(f);
+        }
+      },
+      { threshold: 0.15 }
+    );
     io.observe(el);
     return () => {
       io.disconnect();
@@ -152,62 +135,89 @@ function Num({ v }: { v: string | number }) {
 /* ---------- hero background (used when there is no video) ---------- */
 function Fx({ paused }: { paused: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const pz = useRef(paused);
 
   useEffect(() => {
-    pz.current = paused;
-  }, [paused]);
-
-  useEffect(() => {
+    if (calm()) return;
     const cv = ref.current;
     if (!cv) return;
     const x = cv.getContext('2d');
     if (!x) return;
-    let w: number, h: number, P: Array<{ x: number; y: number; l: number; v: number; a: number }> = [], raf: number, t = 0;
+
+    let w = 0, h = 0;
+    let P: Array<{ x: number; y: number; l: number; v: number; a: number }> = [];
+    let raf = 0;
+    let t = 0;
+    let g: CanvasGradient | null = null;
+
     const rs = () => {
       w = cv.width = cv.offsetWidth;
       h = cv.height = cv.offsetHeight;
-      P = Array.from({ length: 70 }, () => ({
+      if (w <= 0 || h <= 0) return;
+      g = x.createRadialGradient(w * 0.75, h * 0.4, 0, w * 0.75, h * 0.4, w * 0.6);
+      g.addColorStop(0, 'rgba(225,29,46,.35)');
+      g.addColorStop(1, 'transparent');
+      P = Array.from({ length: 45 }, () => ({
         x: Math.random() * w,
         y: Math.random() * h,
-        l: 40 + Math.random() * 160,
-        v: 2 + Math.random() * 6,
-        a: 0.1 + Math.random() * 0.5,
+        l: 40 + Math.random() * 140,
+        v: 2 + Math.random() * 5,
+        a: 0.12 + Math.random() * 0.45,
       }));
     };
     rs();
     window.addEventListener('resize', rs);
+
     const d = () => {
-      if (pz.current) { raf = requestAnimationFrame(d); return; }
+      if (paused) return;
       t++;
       x.fillStyle = '#050506';
       x.fillRect(0, 0, w, h);
-      const g = x.createRadialGradient(w * 0.75, h * 0.4, 0, w * 0.75, h * 0.4, w * 0.6);
-      g.addColorStop(0, 'rgba(225,29,46,.35)');
-      g.addColorStop(1, 'transparent');
-      x.fillStyle = g;
-      x.fillRect(0, 0, w, h);
+      if (g) {
+        x.fillStyle = g;
+        x.fillRect(0, 0, w, h);
+      }
+
       x.strokeStyle = 'rgba(225,29,46,.12)';
       x.lineWidth = 1;
-      for (let i = 0; i < 20; i++) {
+      x.beginPath();
+      for (let i = 0; i < 18; i++) {
         const y = h * 0.55 + i * i * (h / 260) + ((t * 0.6) % 20);
-        x.beginPath(); x.moveTo(0, y); x.lineTo(w, y); x.stroke();
+        x.moveTo(0, y);
+        x.lineTo(w, y);
       }
-      for (let i = -12; i <= 12; i++) {
-        x.beginPath(); x.moveTo(w / 2 + i * 30, h * 0.55); x.lineTo(w / 2 + i * 160, h); x.stroke();
+      for (let i = -10; i <= 10; i++) {
+        x.moveTo(w / 2 + i * 30, h * 0.55);
+        x.lineTo(w / 2 + i * 160, h);
       }
-      P.forEach((p) => {
-        p.y -= p.v; p.x += p.v * 0.35;
-        if (p.y < -p.l) { p.y = h + p.l; p.x = Math.random() * w; }
+      x.stroke();
+
+      x.lineWidth = 2;
+      for (let i = 0; i < P.length; i++) {
+        const p = P[i];
+        p.y -= p.v;
+        p.x += p.v * 0.35;
+        if (p.y < -p.l) {
+          p.y = h + p.l;
+          p.x = Math.random() * w;
+        }
         x.strokeStyle = `rgba(225,29,46,${p.a})`;
-        x.lineWidth = 2;
-        x.beginPath(); x.moveTo(p.x, p.y); x.lineTo(p.x - p.l * 0.35, p.y + p.l); x.stroke();
-      });
+        x.beginPath();
+        x.moveTo(p.x, p.y);
+        x.lineTo(p.x - p.l * 0.35, p.y + p.l);
+        x.stroke();
+      }
       raf = requestAnimationFrame(d);
     };
-    d();
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', rs); };
-  }, []);
+
+    if (!paused) {
+      raf = requestAnimationFrame(d);
+    }
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', rs);
+    };
+  }, [paused]);
 
   return <canvas ref={ref} />;
 }
@@ -295,48 +305,90 @@ function Timeline({ c }: { c: UggContent }) {
     const nds = [...tl.querySelectorAll('.nd')] as HTMLElement[];
     const cols = [...tl.querySelectorAll('.col')] as HTMLElement[];
     const T = 5600, HOLD = 1400, FADE = 700;
-    let t0: number | null = null, raf: number;
+    let t0: number | null = null, raf = 0;
+    let isVisible = false;
+
+    let v = false;
+    let len = 0;
+    let ndPositions: number[] = [];
+
+    const measure = () => {
+      v = window.innerWidth <= 900;
+      const r = rail.getBoundingClientRect();
+      len = v ? r.height : r.width;
+      if (len <= 0) return;
+      ndPositions = nds.map((nd) => {
+        const b = nd.getBoundingClientRect();
+        return v ? r.bottom - (b.top + b.height / 2) : r.right - (b.left + b.width / 2);
+      });
+    };
+
     const clear = () => {
       nds.forEach((x) => x.classList.remove('lit'));
       cols.forEach((x) => x.classList.remove('lit'));
     };
 
     const loop = (now: number) => {
-      raf = requestAnimationFrame(loop);
-      if (!tl.classList.contains('in')) {
-        if (t0 !== null) { t0 = null; fill.style.width = ''; fill.style.height = ''; clear(); }
+      if (!isVisible) return;
+      if (len <= 0) measure();
+      if (len <= 0) {
+        raf = requestAnimationFrame(loop);
         return;
       }
-      const v = window.innerWidth <= 900;
-      const r = rail.getBoundingClientRect();
-      const len = v ? r.height : r.width;
-      if (len <= 0) return;
+
       const k = v ? 'height' : 'width';
-      fill.style[v ? 'width' : 'height'] = '';
       if (t0 === null) t0 = now + 400;
       let e = now - t0;
-      if (e < 0) return;
+      if (e < 0) {
+        raf = requestAnimationFrame(loop);
+        return;
+      }
       if (calm()) e = T;
       let p = Math.min(1, e / T);
       p = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
       const L = p * len;
       fill.style[k] = L + 'px';
       fill.style.opacity = String(e > T + HOLD ? Math.max(0, 1 - (e - T - HOLD) / FADE) : 1);
-      nds.forEach((nd, i) => {
-        const b = nd.getBoundingClientRect();
-        const pos = v ? r.bottom - (b.top + b.height / 2) : r.right - (b.left + b.width / 2);
+
+      for (let i = 0; i < nds.length; i++) {
+        const pos = ndPositions[i] ?? 0;
         const isLit = L >= pos - 2;
-        nd.classList.toggle('lit', isLit);
-        if (cols[i]) cols[i].classList.toggle('lit', isLit);
-      });
+        if (nds[i].classList.contains('lit') !== isLit) {
+          nds[i].classList.toggle('lit', isLit);
+          if (cols[i]) cols[i].classList.toggle('lit', isLit);
+        }
+      }
+
       if (!calm() && e > T + HOLD + FADE) {
         t0 = now + 300;
         fill.style[k] = '0px';
         clear();
       }
+
+      raf = requestAnimationFrame(loop);
     };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+        if (isVisible) {
+          measure();
+          raf = requestAnimationFrame(loop);
+        } else {
+          cancelAnimationFrame(raf);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    io.observe(tl);
+    window.addEventListener('resize', measure);
+
+    return () => {
+      io.disconnect();
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', measure);
+    };
   }, [n]);
 
   return (
@@ -371,28 +423,40 @@ function Timeline({ c }: { c: UggContent }) {
 
 /* ---------- team card with a small 3D tilt ---------- */
 function Member({ m, i, logo }: { m: any; i: number; logo: string }) {
+  const rectRef = useRef<DOMRect | null>(null);
+
+  const onEnter = (e: React.PointerEvent<HTMLDivElement>) => {
+    rectRef.current = e.currentTarget.getBoundingClientRect();
+  };
+
   const tilt = (e: React.PointerEvent<HTMLDivElement>) => {
-    const el = e.currentTarget;
-    const r = el.getBoundingClientRect();
+    const r = rectRef.current || e.currentTarget.getBoundingClientRect();
     const x = (e.clientX - r.left) / r.width - 0.5;
     const y = (e.clientY - r.top) / r.height - 0.5;
-    el.style.transition = 'transform .12s';
-    el.style.transform = `perspective(700px) rotateY(${x * 10}deg) rotateX(${-y * 10}deg) translateY(-6px)`;
+    e.currentTarget.style.transform = `perspective(700px) rotateY(${x * 10}deg) rotateX(${-y * 10}deg) translateY(-6px)`;
   };
+
   const reset = (e: React.PointerEvent<HTMLDivElement>) => {
+    rectRef.current = null;
     e.currentTarget.style.transform = '';
-    e.currentTarget.style.transition = '';
   };
 
   return (
     <R
       className="mem"
       style={{ '--i': i } as React.CSSProperties}
+      onPointerEnter={onEnter}
       onPointerMove={tilt}
       onPointerLeave={reset}
     >
       <div className="ph">
-        {m.img ? <img src={m.img} alt={m.name} /> : logo ? <img className="wm" src={logo} alt="" /> : <b>{(m.name || '?')[0]}</b>}
+        {m.img ? (
+          <img src={m.img} alt={m.name} loading="lazy" decoding="async" />
+        ) : logo ? (
+          <img className="wm" src={logo} alt="" loading="lazy" decoding="async" />
+        ) : (
+          <b>{(m.name || '?')[0]}</b>
+        )}
       </div>
       <span className="ix">{pad(i)}</span>
       <div className="inf">
@@ -401,48 +465,6 @@ function Member({ m, i, logo }: { m: any; i: number; logo: string }) {
         {m.link && <a className="ct" href={m.link} {...ext(m.link)}>Connect →</a>}
       </div>
     </R>
-  );
-}
-
-/* ---------- admin login ---------- */
-function Login({ hash, onOk, onCancel }: { hash: string; onOk: () => void; onCancel: () => void }) {
-  const [pw, setPw] = useState('');
-  const [err, setErr] = useState('');
-  const fails = useRef(0);
-  const lock = useRef(0);
-  const input = useRef<HTMLInputElement>(null);
-
-  useEffect(() => { input.current?.focus(); }, []);
-
-  const go = async () => {
-    if (Date.now() < lock.current) return setErr('Too many attempts. Wait 30 seconds and try again.');
-    let ok = false;
-    try { ok = (await sha(pw)) === hash; } catch { return setErr('Login needs a secure (https) page.'); }
-    if (ok) return onOk();
-    if (++fails.current >= 5) { lock.current = Date.now() + 30000; fails.current = 0; }
-    setErr('Incorrect password.'); setPw('');
-  };
-
-  return (
-    <div id="lg" className="on">
-      <div className="bx">
-        <h3 className="hd">Admin login</h3>
-        <input
-          ref={input}
-          type="password"
-          placeholder="Password"
-          value={pw}
-          autoComplete="current-password"
-          onChange={(e) => setPw(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') go(); if (e.key === 'Escape') onCancel(); }}
-        />
-        <div className="er">{err}</div>
-        <div className="row">
-          <button type="button" className="btn fill" style={{ flex: 1, justifyContent: 'center' }} onClick={go}>Log in</button>
-          <button type="button" className="btn wh" onClick={onCancel}>Cancel</button>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -559,7 +581,7 @@ function EventsSection({ c }: EventsSectionProps) {
               onMouseEnter={() => setActiveIdx(i)}
               {...ext(x.url)}
             >
-              {x.img && <img src={x.img} alt={x.title} />}
+              {x.img && <img src={x.img} alt={x.title} loading="lazy" decoding="async" />}
               <b className="gh">{x.game}</b>
               <div className="ei">
                 <span className={`tag ${x.status}`}>{x.status}</span>
@@ -604,6 +626,27 @@ function getInitialContent(initialTournaments?: Tournament[]): UggContent {
   return base;
 }
 
+function SponsorItem({ x }: { x: { name: string; logo?: string; url?: string } }) {
+  const [imgError, setImgError] = useState(false);
+  const hasLogo = Boolean(x.logo && x.logo.trim() && !imgError);
+
+  return (
+    <a href={x.url || '#'} aria-label={x.name} {...ext(x.url)}>
+      {hasLogo ? (
+        <img
+          src={x.logo}
+          alt={x.name}
+          loading="lazy"
+          decoding="async"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <span>{x.name}</span>
+      )}
+    </a>
+  );
+}
+
 export default function UggApp({ initialTournaments }: UggAppProps) {
   const baseContent = useMemo(() => getInitialContent(initialTournaments), [initialTournaments]);
   const storageRaw = useSyncExternalStore(subscribeStorage, getClientStorage, getServerStorage);
@@ -617,40 +660,19 @@ export default function UggApp({ initialTournaments }: UggAppProps) {
     }
   }, [baseContent, storageRaw]);
 
-  const [previewContent, setPreviewContent] = useState<UggContent | null>(null);
-  const c = previewContent || savedContent;
+  const c = savedContent;
+  const router = useRouter();
 
-  const [panel, setPanel] = useState(false);
-  const [login, setLogin] = useState(false);
   const [menu, setMenu] = useState(false);
   const [active, setActive] = useState('home');
   const [lb, setLb] = useState<string | null>(null);
-  const [msg, setMsg] = useState('');
   const glow = useRef<HTMLDivElement>(null);
-
-  useSmoothScroll();
-
-  const toast = useCallback((m: string) => {
-    setMsg(m);
-    setTimeout(() => setMsg(''), 2200);
-  }, []);
-
-  const openAdmin = () => {
-    const isAuthed = typeof window !== 'undefined' && sessionStorage.getItem('uggA') === '1';
-    if (isAuthed) {
-      setPanel(true);
-    } else {
-      setLogin(true);
-    }
-  };
 
   // Global Escape key listener to close modals
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setLb(null);
-        setLogin(false);
-        setPanel(false);
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -663,7 +685,12 @@ export default function UggApp({ initialTournaments }: UggAppProps) {
     if (c.theme?.bg) s.setProperty('--bg', c.theme.bg);
   }, [c.theme]);
 
+  // Desktop mouse glow follower
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (calm() || window.matchMedia('(pointer: coarse)').matches) {
+      return;
+    }
     let gx = 0, gy = 0, q = false;
     const mv = (e: PointerEvent) => {
       gx = e.clientX; gy = e.clientY;
@@ -676,11 +703,17 @@ export default function UggApp({ initialTournaments }: UggAppProps) {
         }
         const h = document.getElementById('home');
         if (h && !h.classList.contains('off')) {
-          h.style.setProperty('--mx', String((gx / window.innerWidth - 0.5) * 2));
-          h.style.setProperty('--my', String((gy / window.innerHeight - 0.5) * 2));
+          h.style.setProperty('--mx', String(((gx / window.innerWidth - 0.5) * 2).toFixed(2)));
+          h.style.setProperty('--my', String(((gy / window.innerHeight - 0.5) * 2).toFixed(2)));
         }
       });
     };
+    window.addEventListener('pointermove', mv, { passive: true });
+    return () => window.removeEventListener('pointermove', mv);
+  }, []);
+
+  // Smooth anchor link click handling
+  useEffect(() => {
     const click = (e: MouseEvent) => {
       const a = (e.target as HTMLElement)?.closest?.('a[href^="#"]') as HTMLAnchorElement | null;
       if (!a || (a.getAttribute('href')?.length ?? 0) < 2) return;
@@ -692,17 +725,12 @@ export default function UggApp({ initialTournaments }: UggAppProps) {
         setMenu(false);
       }
     };
-
-    window.addEventListener('pointermove', mv, { passive: true });
     document.addEventListener('click', click);
     if (typeof window !== 'undefined' && window.location.hash === '#admin') {
-      setTimeout(() => (sessionStorage.getItem('uggA') === '1' ? setPanel(true) : setLogin(true)), 600);
+      router.push('/admin');
     }
-    return () => {
-      window.removeEventListener('pointermove', mv);
-      document.removeEventListener('click', click);
-    };
-  }, []);
+    return () => document.removeEventListener('click', click);
+  }, [router]);
 
   useEffect(() => {
     const io = new IntersectionObserver(
@@ -714,6 +742,14 @@ export default function UggApp({ initialTournaments }: UggAppProps) {
   }, []);
 
   const f = c.footer;
+  const footerCols = useMemo(() => {
+    return f.cols.map((col: any, idx: number) => {
+      if (idx === 0 && col.title === 'Explore') {
+        return DEF.footer.cols[0];
+      }
+      return col;
+    });
+  }, [f.cols]);
   const sp = c.sponsors.items.map((x: any) => (typeof x === 'string' ? { name: x, logo: '', url: '#' } : x));
   const tick = Array.from({ length: Math.max(2, Math.ceil(8 / sp.length)) }, () => sp).flat();
 
@@ -788,7 +824,7 @@ export default function UggApp({ initialTournaments }: UggAppProps) {
               <R as="a" className="btn" style={{ alignSelf: 'flex-start' }} href={x.url} {...ext(x.url)}>
                 {x.btn}
               </R>
-              {x.img && <img className="bgimg" src={x.img} alt="" />}
+              {x.img && <img className="bgimg" src={x.img} alt="" loading="lazy" decoding="async" />}
               <span className="art">{x.art}</span>
             </div>
           ))}
@@ -816,7 +852,7 @@ export default function UggApp({ initialTournaments }: UggAppProps) {
                   }
                 }}
               >
-                {g.img && <img src={g.img} alt={g.caption} loading="lazy" />}
+                {g.img && <img src={g.img} alt={g.caption} loading="lazy" decoding="async" />}
                 <figcaption>{g.caption}</figcaption>
               </R>
             ))}
@@ -833,9 +869,7 @@ export default function UggApp({ initialTournaments }: UggAppProps) {
           <div className="tick">
             <div>
               {[...tick, ...tick].map((x: any, i: number) => (
-                <a key={i} href={x.url} aria-label={x.name} {...ext(x.url)}>
-                  {x.logo ? <img src={x.logo} alt={x.name} /> : <span>{x.name}</span>}
-                </a>
+                <SponsorItem key={i} x={x} />
               ))}
             </div>
           </div>
@@ -882,7 +916,7 @@ export default function UggApp({ initialTournaments }: UggAppProps) {
               </a>
               <p style={{ marginTop: 12, color: 'var(--mut)' }}>{f.about}</p>
             </div>
-            {f.cols.map((k: any, i: number) => (
+            {footerCols.map((k: any, i: number) => (
               <div key={i}>
                 <h4>{k.title}</h4>
                 {k.links.map((l: any, j: number) => (
@@ -900,9 +934,49 @@ export default function UggApp({ initialTournaments }: UggAppProps) {
                 {s.t}
               </a>
             ))}
-            <button className="alink" id="ab" type="button" onClick={openAdmin}>
-              Admin
-            </button>
+            <Link
+              id="ab"
+              href="/admin"
+              title="Database Portal"
+              aria-label="Database Portal"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                verticalAlign: 'middle',
+                marginLeft: 10,
+                width: 26,
+                height: 26,
+                borderRadius: '6px',
+                border: '1px solid rgba(255, 255, 255, 0.14)',
+                background: 'rgba(255, 255, 255, 0.04)',
+                color: 'var(--mut)',
+                transition: 'all 0.25s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#fff';
+                e.currentTarget.style.borderColor = 'var(--red)';
+                e.currentTarget.style.background = 'rgba(225, 29, 46, 0.18)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--mut)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.14)';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+              }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+            </Link>
             <span style={{ float: 'right', color: 'var(--red)' }} className="hd">
               {f.tagline}
             </span>
@@ -950,42 +1024,6 @@ export default function UggApp({ initialTournaments }: UggAppProps) {
           </div>
         )}
       </div>
-
-      {login && (
-        <Login
-          hash={c.admin.hash}
-          onCancel={() => setLogin(false)}
-          onOk={() => {
-            sessionStorage.setItem('uggA', '1');
-            setLogin(false);
-            setPanel(true);
-          }}
-        />
-      )}
-
-      {panel && (
-        <AdminDrawer
-          content={previewContent || savedContent}
-          toast={toast}
-          onChange={(d) => setPreviewContent(d)}
-          onSave={(d) => {
-            save(d);
-            setPreviewContent(null);
-            toast('Saved');
-          }}
-          onClose={() => {
-            setPreviewContent(null);
-            setPanel(false);
-          }}
-          onLogout={() => {
-            sessionStorage.removeItem('uggA');
-            setPreviewContent(null);
-            setPanel(false);
-          }}
-        />
-      )}
-
-      <div id="toast" className={msg ? 'on' : ''}>{msg}</div>
     </>
   );
 }
