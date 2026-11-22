@@ -108,3 +108,50 @@ drop policy if exists "Public visitors can view tournament posters" on storage.o
 create policy "Public visitors can view tournament posters"
   on storage.objects for select
   using (bucket_id = 'posters');
+
+-- ==============================================================================
+-- Site Content: single-row configuration document for the global website
+-- ==============================================================================
+create table if not exists public.site_content (
+  id text primary key check (id = 'main'),
+  content jsonb not null default '{}'::jsonb,
+  updated_at timestamptz default now() not null,
+  updated_by text
+);
+
+create or replace function public.handle_site_content_updated_at()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists set_site_content_updated_at on public.site_content;
+create trigger set_site_content_updated_at
+  before update on public.site_content
+  for each row execute function public.handle_site_content_updated_at();
+
+alter table public.site_content enable row level security;
+
+revoke all on public.site_content from anon;
+grant select on public.site_content to anon;
+grant select on public.site_content to authenticated;
+grant all on public.site_content to service_role;
+
+drop policy if exists "Public visitors can view site content" on public.site_content;
+create policy "Public visitors can view site content"
+  on public.site_content
+  for select
+  using (true);
+
+drop policy if exists "Admins can update site content" on public.site_content;
+create policy "Admins can update site content"
+  on public.site_content
+  for all
+  to authenticated
+  using ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  with check ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');

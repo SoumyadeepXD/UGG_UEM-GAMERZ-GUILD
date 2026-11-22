@@ -28,10 +28,15 @@ import {
   Code,
 } from "lucide-react";
 
-export default function SiteContentEditor() {
-  const [content, setContent] = useState<UggContent>(() => load());
+interface SiteContentEditorProps {
+  initialContent?: UggContent;
+}
+
+export default function SiteContentEditor({ initialContent }: SiteContentEditorProps = {}) {
+  const [content, setContent] = useState<UggContent>(() => initialContent || load());
   const [activeSection, setActiveSection] = useState<string>("brand");
   const [isUploading, setIsUploading] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [saveNotification, setSaveNotification] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -52,14 +57,31 @@ export default function SiteContentEditor() {
     };
   }, []);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setIsSaving(true);
+    setUploadError(null);
     try {
+      const res = await fetch("/api/admin/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to save content to database");
+      }
+
       save(content);
       cyberSound.playLaunch();
-      setSaveNotification("Website content successfully saved and synchronized to live site!");
-      setTimeout(() => setSaveNotification(null), 4000);
+      setSaveNotification("Website content successfully saved and published globally to the live site!");
+      setTimeout(() => setSaveNotification(null), 5000);
     } catch (e: unknown) {
-      alert("Failed to save content: " + (e instanceof Error ? e.message : String(e)));
+      const msg = e instanceof Error ? e.message : String(e);
+      alert("Failed to save content globally: " + msg);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -228,10 +250,15 @@ export default function SiteContentEditor() {
           <button
             type="button"
             onClick={handleSave}
-            className="min-h-[40px] px-5 py-2 rounded-xl bg-gradient-to-r from-[#ff1e38] to-[#b80d22] hover:from-[#ff2a44] hover:to-[#ff1e38] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-[0_0_20px_rgba(255,30,56,0.5)] transition-all active:scale-95"
+            disabled={isSaving}
+            className="min-h-[40px] px-5 py-2 rounded-xl bg-gradient-to-r from-[#ff1e38] to-[#b80d22] hover:from-[#ff2a44] hover:to-[#ff1e38] disabled:opacity-50 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-[0_0_20px_rgba(255,30,56,0.5)] transition-all active:scale-95"
           >
-            <Save className="w-4 h-4" />
-            <span>Save Website Changes</span>
+            {isSaving ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            <span>{isSaving ? "Publishing Globally..." : "Save Website Changes"}</span>
           </button>
         </div>
       </div>
