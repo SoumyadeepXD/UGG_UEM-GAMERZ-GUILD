@@ -94,6 +94,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark scroll-smooth">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
       <body className="min-h-screen bg-[#050506] text-white antialiased selection:bg-[#e11d2e] selection:text-white">
         {children}
         <Analytics />
